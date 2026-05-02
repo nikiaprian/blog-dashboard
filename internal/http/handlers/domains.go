@@ -212,6 +212,9 @@ func (h *Handler) handleDashboardBlogAddDomain(w http.ResponseWriter, r *http.Re
 		}
 	}
 	if strings.EqualFold(strings.TrimSpace(r.Header.Get("HX-Request")), "true") {
+		// Hint for Nginx: allow very long upstream responses (add.sh / certbot can exceed default 60s).
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Accel-Buffering", "no")
 		_ = h.Templates.ExecuteTemplate(w, "partials_add_domain_log.html", ViewData{ScriptLog: logData})
 		return
 	}
