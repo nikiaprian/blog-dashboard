@@ -46,9 +46,11 @@ type CommandResult struct {
 }
 
 type BlogPathRow struct {
+	ServerID   int64
 	ServerName string
 	Path       string
 	Status     string
+	CanDelete  bool
 }
 
 type ScriptRunLog struct {
@@ -85,6 +87,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/dashboard/domains/", h.requireAuth("user", h.handleDashboardDomainDelete))
 	mux.HandleFunc("/dashboard/blogs/paths/table", h.requireAuth("user", h.handleDashboardBlogPathsTable))
 	mux.HandleFunc("/dashboard/blogs/add-domain", h.requireAuth("user", h.handleDashboardBlogAddDomain))
+	mux.HandleFunc("/dashboard/blogs/delete-path", h.requireAuth("user", h.handleDashboardBlogDeletePath))
 
 	mux.HandleFunc("/api/verify", h.handleVerify)
 }

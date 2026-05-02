@@ -1,0 +1,11 @@
+{{define "partials_blog_delete_log.html"}}
+{{if .ScriptLog}}
+<div class="script-log {{if .ScriptLog.Success}}ok{{else}}fail{{end}}">
+  <strong>Server: {{.ScriptLog.ServerName}}</strong>
+  <pre>{{.ScriptLog.Output}}</pre>
+  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+    <button type="button" onclick="document.getElementById('blog-delete-log').innerHTML=''; if (window.htmx) { htmx.ajax('GET', '/dashboard/blogs/paths/table', { target: '#blog-paths-body', swap: 'innerHTML' }); }">Tutup &amp; refresh list</button>
+  </div>
+</div>
+{{end}}
+{{end}}

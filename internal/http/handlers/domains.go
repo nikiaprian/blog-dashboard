@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"bebii-seo-dashboard/internal/db"
 )
+
+var appSlugPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,126}$`)
 
 func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	msgFromQuery := strings.TrimSpace(r.URL.Query().Get("msg"))
@@ -112,6 +116,7 @@ func (h *Handler) handleDashboardBlogPathsTable(w http.ResponseWriter, r *http.R
 		out, cmdErr := runRemoteCommand(s, "bash -lc 'ls -1 /opt 2>/dev/null'")
 		if cmdErr != nil {
 			rows = append(rows, BlogPathRow{
+				ServerID:   s.ID,
 				ServerName: s.Name,
 				Path:       cmdErr.Error(),
 				Status:     "error",
@@ -126,14 +131,17 @@ func (h *Handler) handleDashboardBlogPathsTable(w http.ResponseWriter, r *http.R
 				continue
 			}
 			rows = append(rows, BlogPathRow{
+				ServerID:   s.ID,
 				ServerName: s.Name,
 				Path:       line,
 				Status:     "ok",
+				CanDelete:  appSlugPattern.MatchString(line),
 			})
 			added = true
 		}
 		if !added {
 			rows = append(rows, BlogPathRow{
+				ServerID:   s.ID,
 				ServerName: s.Name,
 				Path:       "(empty /opt)",
 				Status:     "empty",
@@ -179,19 +187,22 @@ func (h *Handler) handleDashboardBlogAddDomain(w http.ResponseWriter, r *http.Re
 	}
 	// Feed answers to interactive add.sh prompts:
 	// domain, canonical(1/2), SSL(y/n), [email if y], db pass(blank => auto), jwt(blank => auto).
+	sudoAddSh := addShSudoCommand()
 	var script string
 	if sslOption == "y" {
 		script = fmt.Sprintf(
-			"printf '%%s\\n%s\\ny\\n%%s\\n\\n\\n' %s %s | sudo -n /home/add.sh",
+			"printf '%%s\\n%s\\ny\\n%%s\\n\\n\\n' %s %s | %s",
 			canonical,
 			shellQuote(domain),
 			shellQuote(sslEmail),
+			sudoAddSh,
 		)
 	} else {
 		script = fmt.Sprintf(
-			"printf '%%s\\n%s\\nn\\n\\n\\n' %s | sudo -n /home/add.sh",
+			"printf '%%s\\n%s\\nn\\n\\n\\n' %s | %s",
 			canonical,
 			shellQuote(domain),
+			sudoAddSh,
 		)
 	}
 	command := "bash -lc " + shellQuote(script)
@@ -220,6 +231,85 @@ func (h *Handler) handleDashboardBlogAddDomain(w http.ResponseWriter, r *http.Re
 	}
 	// Non-HTMX fallback: keep URL clean without msg query.
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+func (h *Handler) handleDashboardBlogDeletePath(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	me, _ := h.currentUser(r)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	serverID, _ := strconv.ParseInt(strings.TrimSpace(r.FormValue("server_id")), 10, 64)
+	appSlug := strings.TrimSpace(r.FormValue("app_slug"))
+	if serverID <= 0 || appSlug == "" {
+		http.Error(w, "server_id and app_slug required", http.StatusBadRequest)
+		return
+	}
+	if !appSlugPattern.MatchString(appSlug) {
+		http.Error(w, "invalid app_slug", http.StatusBadRequest)
+		return
+	}
+	server, err := db.GetRemoteServerByIDForUser(h.DB, serverID, me.ID)
+	if err != nil {
+		http.Error(w, "server not found", http.StatusNotFound)
+		return
+	}
+	// delete.sh: non-interactive with --apps (slug under /opt) and --yes (skip confirmation).
+	inner := fmt.Sprintf("sudo -n /home/delete.sh --apps %s --yes", shellQuote(appSlug))
+	command := "bash -lc " + shellQuote(inner)
+	out, cmdErr := runRemoteCommand(*server, command)
+	logData := &ScriptRunLog{
+		ServerName: server.Name,
+		Success:    cmdErr == nil,
+		Output:     strings.TrimSpace(out),
+	}
+	if cmdErr != nil {
+		logData.Output = strings.TrimSpace(out + "\n" + cmdErr.Error())
+	}
+	if logData.Output == "" {
+		if logData.Success {
+			logData.Output = "(no output)"
+		} else {
+			logData.Output = "(no output, execution failed)"
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(r.Header.Get("HX-Request")), "true") {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Accel-Buffering", "no")
+		_ = h.Templates.ExecuteTemplate(w, "partials_blog_delete_log.html", ViewData{ScriptLog: logData})
+		return
+	}
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
+// addShSudoCommand builds the remote command after the pipe for /home/add.sh.
+// If ADD_GITHUB_TOKEN is set on the dashboard host, credentials are passed with
+// sudo env ... so remote servers do not need /root/.github_token (add.sh reads env first).
+func addShSudoCommand() string {
+	token := strings.TrimSpace(os.Getenv("ADD_GITHUB_TOKEN"))
+	token = strings.ReplaceAll(strings.ReplaceAll(token, "\n", ""), "\r", "")
+	if token == "" {
+		return "sudo -n /home/add.sh"
+	}
+	user := strings.TrimSpace(os.Getenv("ADD_GITHUB_USERNAME"))
+	if user == "" {
+		user = "x-access-token"
+	}
+	var b strings.Builder
+	b.WriteString("sudo -n env GITHUB_TOKEN=")
+	b.WriteString(shellQuote(token))
+	b.WriteString(" GITHUB_USERNAME=")
+	b.WriteString(shellQuote(user))
+	if u := strings.TrimSpace(os.Getenv("ADD_GIT_URL")); u != "" {
+		b.WriteString(" GIT_URL=")
+		b.WriteString(shellQuote(u))
+	}
+	b.WriteString(" /home/add.sh")
+	return b.String()
 }
 
 func shellQuote(s string) string {

@@ -41,6 +41,8 @@
     input, textarea, select, button { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
     button { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.35); cursor: pointer; font-weight: 600; }
     button:hover { background: rgba(91,140,255,.28); }
+    button.btn-danger { background: rgba(255,91,106,.18); border-color: rgba(255,91,106,.45); color: var(--text); }
+    button.btn-danger:hover { background: rgba(255,91,106,.28); }
     form.inline { display: inline-flex; gap: 8px; margin: 0; flex-wrap: wrap; }
     .script-log { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.03); }
     .script-log.ok { border-color: rgba(43,212,166,.35); background: rgba(43,212,166,.08); }
@@ -133,11 +135,16 @@
         <button type="button" onclick="openAddDomainModal()">Tambah Domain</button>
       </form>
       <table>
-        <thead><tr><th>Server</th><th>Path /opt</th><th>Status</th></tr></thead>
+        <thead><tr><th>Server</th><th>Path /opt</th><th>Status</th><th>Action</th></tr></thead>
         <tbody id="blog-paths-body" hx-get="/dashboard/blogs/paths/table" hx-trigger="load" hx-swap="innerHTML">
           {{template "partials_blog_paths_rows.html" .}}
         </tbody>
       </table>
+      <div id="blog-delete-loading" class="loading-indicator" style="margin-top:10px;">
+        <span class="spinner"></span>
+        <span>Menjalankan delete.sh…</span>
+      </div>
+      <div id="blog-delete-log" style="margin-top:8px;"></div>
     </div>
   </div>
   <dialog id="dlgAddBlogDomain">
