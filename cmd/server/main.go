@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"bebii-seo-dashboard/internal/db"
@@ -60,13 +61,14 @@ func main() {
 	h.Register(mux)
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
+	addr := listenAddr()
 	server := &http.Server{
-		Addr:              ":8080",
+		Addr:              addr,
 		Handler:           apphttp.Logging(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	log.Println("server running on http://localhost:8080")
+	log.Printf("server listening on %s", addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen: %v", err)
 	}
@@ -77,4 +79,18 @@ func getenv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// listenAddr: HTTP_ADDR (full, e.g. :9090 or 127.0.0.1:9090), else HTTP_PORT, else PORT, else :8080.
+func listenAddr() string {
+	if v := strings.TrimSpace(os.Getenv("HTTP_ADDR")); v != "" {
+		return v
+	}
+	if p := strings.TrimSpace(os.Getenv("HTTP_PORT")); p != "" {
+		return ":" + p
+	}
+	if p := strings.TrimSpace(os.Getenv("PORT")); p != "" {
+		return ":" + p
+	}
+	return ":8080"
 }
