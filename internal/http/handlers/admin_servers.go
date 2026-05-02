@@ -82,6 +82,8 @@ func (h *Handler) handleAdminServerActions(w http.ResponseWriter, r *http.Reques
 			http.Error(w, "invalid run-update request", http.StatusBadRequest)
 			return
 		}
+		// Blocks until SSH finishes on every enabled server; raise Nginx proxy_read_timeout
+		// (see deploy/nginx-proxy-timeouts.conf.example) or Cloudflare will return 504 early.
 		commandInput := strings.TrimSpace(strings.ToLower(r.FormValue("command_input")))
 		if commandInput != "semua" {
 			http.Error(w, "command_input must be 'semua'", http.StatusBadRequest)

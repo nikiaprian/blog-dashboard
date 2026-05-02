@@ -1,0 +1,11 @@
+# Paste inside your server { } block that reverse-proxies to bebii-seo-dashboard
+# (same domain as https://domain.myexams.web.id). Fixes 504 on long SSH jobs:
+#   - POST /dashboard/blogs/add-domain   (remote add.sh)
+#   - POST /admin/servers/run-update     (remote update.sh per server, sequential)
+#
+# Reload: sudo nginx -t && sudo systemctl reload nginx
+
+proxy_connect_timeout 600s;
+proxy_send_timeout    3600s;
+proxy_read_timeout    3600s;
+send_timeout          3600s;
