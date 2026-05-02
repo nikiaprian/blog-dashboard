@@ -2,35 +2,62 @@ package handlers
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"bebii-seo-dashboard/internal/db"
 )
 
+func isHTMX(r *http.Request) bool {
+	return strings.EqualFold(strings.TrimSpace(r.Header.Get("HX-Request")), "true")
+}
+
 func (h *Handler) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	me, _ := h.currentUser(r)
 	if r.Method == http.MethodPost {
 		if err := r.ParseForm(); err != nil {
-			http.Error(w, "bad form", http.StatusBadRequest)
+			if isHTMX(r) {
+				http.Error(w, "bad form", http.StatusBadRequest)
+			} else {
+				http.Redirect(w, r, "/admin/users?msg="+url.QueryEscape("bad form"), http.StatusSeeOther)
+			}
 			return
 		}
 		email := r.FormValue("email")
 		password := r.FormValue("password")
 		role := r.FormValue("role")
 		if email == "" || password == "" {
-			http.Error(w, "email/password required", http.StatusBadRequest)
+			msg := "email/password required"
+			if isHTMX(r) {
+				http.Error(w, msg, http.StatusBadRequest)
+			} else {
+				http.Redirect(w, r, "/admin/users?msg="+url.QueryEscape(msg), http.StatusSeeOther)
+			}
 			return
 		}
 		if len(password) < 8 {
-			http.Error(w, "password min 8", http.StatusBadRequest)
+			msg := "password min 8 characters"
+			if isHTMX(r) {
+				http.Error(w, msg, http.StatusBadRequest)
+			} else {
+				http.Redirect(w, r, "/admin/users?msg="+url.QueryEscape(msg), http.StatusSeeOther)
+			}
 			return
 		}
 		if err := db.CreateUser(h.DB, email, password, role); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			if isHTMX(r) {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			} else {
+				http.Redirect(w, r, "/admin/users?msg="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+			}
 			return
 		}
-		h.handleAdminUsersTable(w, r)
+		if isHTMX(r) {
+			h.handleAdminUsersTable(w, r)
+			return
+		}
+		http.Redirect(w, r, "/admin/users?msg="+url.QueryEscape("User created."), http.StatusSeeOther)
 		return
 	}
 
@@ -40,9 +67,10 @@ func (h *Handler) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = h.Templates.ExecuteTemplate(w, "admin_users.html", ViewData{
-		Title: "Admin Users",
-		Me:    me,
-		Users: users,
+		Title:   "Admin Users",
+		Me:      me,
+		Users:   users,
+		Message: strings.TrimSpace(r.URL.Query().Get("msg")),
 	})
 }
 

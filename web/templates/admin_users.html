@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Admin - Users</title>
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="/static/htmx.min.js"></script>
   <style>
     :root {
       --bg: #0b1220;
@@ -47,6 +47,7 @@
     button:hover { background: rgba(91,140,255,.28); }
     form.inline { display: inline-flex; gap: 8px; margin: 0; flex-wrap: wrap; }
     .new-user { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-top: 10px; align-items: start; }
+    .msg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(91,140,255,.35); background: rgba(91,140,255,.08); color: var(--text); }
   </style>
 </head>
 <body>
@@ -61,15 +62,20 @@
       <a href="/admin/servers">Servers</a>
     </div>
 
+    {{if .Message}}<div class="msg">{{.Message}}</div>{{end}}
+
     <div class="card">
       <h3 style="margin:0 0 10px;">Create User</h3>
       <form
         class="new-user"
+        method="post"
+        action="/admin/users"
         hx-post="/admin/users"
         hx-target="#users-body"
-        hx-swap="innerHTML">
+        hx-swap="innerHTML"
+        hx-on::after-request="if (event.detail.successful === false) { var x = event.detail.xhr; var t = (x &amp;&amp; x.responseText) ? x.responseText.substring(0,500) : ''; alert(t || 'Permintaan gagal'); }">
         <input type="email" name="email" placeholder="email user" required>
-        <input type="password" name="password" placeholder="password min 8 char" required>
+        <input type="password" name="password" placeholder="password min 8 char" minlength="8" required>
         <select name="role">
           <option value="user">user</option>
           <option value="admin">admin</option>
