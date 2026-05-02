@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Domains</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #0f1a2e;
+      --panel-2: #0c1628;
+      --text: #e7edf7;
+      --muted: #9fb0c9;
+      --border: rgba(255,255,255,.10);
+      --accent: #5b8cff;
+      --accent-2: #2bd4a6;
+      --danger: #ff5b6a;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+    a { color: var(--muted); text-decoration: none; }
+    a:hover { color: var(--text); }
+    .container { max-width: 1180px; margin: 0 auto; padding: 22px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .nav { display: flex; gap: 8px; margin: 14px 0 18px; flex-wrap: wrap; align-items: center; }
+    .nav a {
+      display: inline-flex; align-items: center;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(255,255,255,.03);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .nav a:hover { background: rgba(255,255,255,.06); }
+    .nav a.active { color: var(--text); background: rgba(91,140,255,.12); border-color: rgba(91,140,255,.35); }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 14px 0; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; overflow: hidden; border-radius: 12px; border: 1px solid var(--border); }
+    th, td { border-bottom: 1px solid var(--border); padding: 10px 12px; vertical-align: top; }
+    th { text-align: left; color: var(--muted); font-weight: 600; background: rgba(255,255,255,.03); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    input, textarea, select, button { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
+    button { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.35); cursor: pointer; font-weight: 600; }
+    button:hover { background: rgba(91,140,255,.28); }
+    form.inline { display: inline-flex; gap: 8px; margin: 0; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <h2 style="margin:0;">Admin Domains: {{.Target.Email}}</h2>
+      <a href="/admin/users">Back to Users</a>
+    </div>
+    <div class="nav">
+      <a href="/admin/users">Users</a>
+      <a href="/admin/logs">Verify Logs</a>
+      <a href="/admin/servers">Servers</a>
+      <a class="active" aria-current="page" href="/admin/users/{{.Target.ID}}/domains">Domains</a>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px;">Add Domain</h3>
+      <form hx-post="/admin/users/{{.Target.ID}}/domains/add" hx-target="#domain-body" hx-swap="innerHTML" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input type="text" name="domain" placeholder="example.com" required style="min-width: 260px;">
+        <button type="submit">Tambah Domain</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px;">Domains</h3>
+      <table>
+        <thead><tr><th>ID</th><th>Domain</th><th>Action</th></tr></thead>
+        <tbody id="domain-body" hx-get="/admin/users/{{.Target.ID}}/domains/table" hx-trigger="load" hx-swap="innerHTML">
+          {{template "partials_domain_rows_admin.html" .}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px;">Linked Servers</h3>
+      <table>
+        <thead><tr><th>Name</th><th>Host</th><th>Port</th><th>SSH User</th><th>Status</th></tr></thead>
+        <tbody>
+          {{range .Servers}}
+          <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Host}}</td>
+            <td>{{.Port}}</td>
+            <td>{{.SSHUser}}</td>
+            <td>{{if .IsEnabled}}enabled{{else}}disabled{{end}}</td>
+          </tr>
+          {{else}}
+          <tr><td colspan="5">No linked servers for this user.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

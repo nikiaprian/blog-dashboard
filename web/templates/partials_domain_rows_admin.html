@@ -1,0 +1,13 @@
+{{define "partials_domain_rows_admin.html"}}
+{{range .Domains}}
+<tr>
+  <td>{{.ID}}</td>
+  <td>{{.Domain}}</td>
+  <td>
+    <form class="inline" hx-post="/admin/users/{{$.Target.ID}}/domains/{{.ID}}/delete" hx-target="#domain-body" hx-swap="innerHTML">
+      <button type="submit">Delete</button>
+    </form>
+  </td>
+</tr>
+{{end}}
+{{end}}

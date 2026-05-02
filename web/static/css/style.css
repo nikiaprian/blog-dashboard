@@ -1,0 +1,359 @@
+:root {
+  --bg: #0b1220;
+  --panel: #0f1a2e;
+  --panel-2: #0c1628;
+  --text: #e7edf7;
+  --muted: #9fb0c9;
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: #5b8cff;
+  --accent-2: #2bd4a6;
+  --danger: #ff5b6a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--text);
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 22px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nav a:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav a.active {
+  color: var(--text);
+  background: rgba(91, 140, 255, 0.12);
+  border-color: rgba(91, 140, 255, 0.35);
+}
+
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 14px 0;
+}
+
+.card h3 {
+  margin: 0 0 10px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  table-layout: auto;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.03);
+  white-space: nowrap;
+}
+
+tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.th-sort {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.th-sort:hover {
+  color: var(--text);
+}
+
+.th-sort::after {
+  content: "↕";
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.th-sort[data-sort-dir="asc"]::after {
+  content: "▲";
+  opacity: 1;
+}
+
+.th-sort[data-sort-dir="desc"]::after {
+  content: "▼";
+  opacity: 1;
+}
+
+input,
+textarea,
+select,
+button {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(231, 237, 247, 0.45);
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 110px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+button {
+  background: rgba(91, 140, 255, 0.18);
+  border-color: rgba(91, 140, 255, 0.35);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover {
+  background: rgba(91, 140, 255, 0.28);
+}
+
+.btn-green {
+  background: rgba(43, 212, 166, 0.18);
+  border-color: rgba(43, 212, 166, 0.35);
+}
+
+.btn-green:hover {
+  background: rgba(43, 212, 166, 0.28);
+}
+
+.btn-danger {
+  background: rgba(255, 91, 106, 0.18);
+  border-color: rgba(255, 91, 106, 0.35);
+}
+
+.btn-danger:hover {
+  background: rgba(255, 91, 106, 0.28);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-lg {
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.top-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sub-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+}
+
+.ok {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.fail {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(231, 237, 247, 0.85);
+}
+
+/* Status switch */
+.status-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-switch input {
+  display: none;
+}
+
+.status-slider {
+  width: 50px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.status-slider::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease;
+}
+
+.status-switch input:checked + .status-slider {
+  background: rgba(43, 212, 166, 0.45);
+  border-color: rgba(43, 212, 166, 0.75);
+}
+
+.status-switch input:checked + .status-slider::after {
+  transform: translateX(24px);
+}
+
+.status-switch input:focus-visible + .status-slider {
+  outline: 2px solid rgba(91, 140, 255, 0.75);
+  outline-offset: 2px;
+}
+
+.status-meta {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Modal */
+dialog {
+  width: min(920px, 92vw);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 0;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-body {
+  padding: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .modal-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

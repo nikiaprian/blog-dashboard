@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>User Dashboard</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #0f1a2e;
+      --panel-2: #0c1628;
+      --text: #e7edf7;
+      --muted: #9fb0c9;
+      --border: rgba(255,255,255,.10);
+      --accent: #5b8cff;
+      --accent-2: #2bd4a6;
+      --danger: #ff5b6a;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+    .container { max-width: 1180px; margin: 0 auto; padding: 22px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .tabs { display:flex; gap:8px; margin: 12px 0; flex-wrap: wrap; }
+    .tabs button {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .tabs button.active {
+      color: var(--text);
+      background: rgba(91,140,255,.16);
+      border-color: rgba(91,140,255,.35);
+    }
+    .msg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(43,212,166,.35); background: rgba(43,212,166,.08); color: var(--text); }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 14px 0; }
+    table { border-collapse: collapse; width: 100%; margin-top: 12px; overflow: hidden; border-radius: 12px; border: 1px solid var(--border); }
+    th, td { border-bottom: 1px solid var(--border); padding: 10px 12px; vertical-align: top; }
+    th { text-align: left; color: var(--muted); font-weight: 600; background: rgba(255,255,255,.03); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    input, textarea, select, button { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
+    button { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.35); cursor: pointer; font-weight: 600; }
+    button:hover { background: rgba(91,140,255,.28); }
+    form.inline { display: inline-flex; gap: 8px; margin: 0; flex-wrap: wrap; }
+    .script-log { margin-top: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.03); }
+    .script-log.ok { border-color: rgba(43,212,166,.35); background: rgba(43,212,166,.08); }
+    .script-log.fail { border-color: rgba(255,91,106,.35); background: rgba(255,91,106,.08); }
+    .script-log pre { margin: 8px 0 0; white-space: pre-wrap; word-break: break-word; }
+    .loading-indicator {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(91,140,255,.10);
+      align-items: center;
+      gap: 8px;
+    }
+    .loading-indicator.htmx-request { display: inline-flex; }
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.25);
+      border-top-color: rgba(255,255,255,.95);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    dialog {
+      width: min(720px, 92vw);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 0;
+    }
+    dialog::backdrop { background: rgba(0,0,0,.55); }
+    .modal-head { display:flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border); }
+    .modal-body { padding: 14px; display:grid; gap: 10px; }
+    .modal-actions { display:flex; justify-content:flex-end; gap: 10px; padding: 14px; border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <h2 style="margin:0;">User Dashboard: {{.Me.Email}}</h2>
+      <form method="post" action="/logout"><button type="submit">Logout</button></form>
+    </div>
+
+    <div class="tabs">
+      <button type="button" class="active" onclick="switchTab('tab-domains', this)">Whitelist Domain</button>
+      <button type="button" onclick="switchTab('tab-blogs', this)">Manage Blog</button>
+    </div>
+    {{if .Message}}<div class="msg">{{.Message}}</div>{{end}}
+
+    <div class="card tab-content" id="tab-domains">
+      <h3 style="margin:0 0 10px;">Domain Whitelist Saya</h3>
+      <form hx-post="/dashboard/domains" hx-target="#domain-body-user" hx-swap="innerHTML" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input type="text" name="domain" placeholder="example.com" required style="min-width: 260px;">
+        <button type="submit">Tambah Domain</button>
+      </form>
+
+      <table>
+        <thead><tr><th>ID</th><th>Domain</th><th>Action</th></tr></thead>
+        <tbody id="domain-body-user" hx-get="/dashboard/domains/table" hx-trigger="load" hx-swap="innerHTML">
+          {{template "partials_domain_rows_user.html" .}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card tab-content" id="tab-blogs" style="display:none;">
+      <h3 style="margin:0 0 10px;">Manage Blog</h3>
+      <table>
+        <thead><tr><th>Name</th><th>Host</th><th>Port</th><th>SSH User</th><th>Status</th></tr></thead>
+        <tbody>
+          {{range .Servers}}
+          <tr>
+            <td>{{.Name}}</td>
+            <td>{{.Host}}</td>
+            <td>{{.Port}}</td>
+            <td>{{.SSHUser}}</td>
+            <td>{{if .IsEnabled}}enabled{{else}}disabled{{end}}</td>
+          </tr>
+          {{else}}
+          <tr><td colspan="5">Belum ada server yang ditautkan ke akun ini.</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+
+      <h3 style="margin:16px 0 10px;">List Domain dari /opt</h3>
+      <form hx-get="/dashboard/blogs/paths/table" hx-target="#blog-paths-body" hx-swap="innerHTML" style="display:flex; gap:10px; margin-bottom:8px;">
+        <button type="submit">Refresh</button>
+        <button type="button" onclick="openAddDomainModal()">Tambah Domain</button>
+      </form>
+      <table>
+        <thead><tr><th>Server</th><th>Path /opt</th><th>Status</th></tr></thead>
+        <tbody id="blog-paths-body" hx-get="/dashboard/blogs/paths/table" hx-trigger="load" hx-swap="innerHTML">
+          {{template "partials_blog_paths_rows.html" .}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <dialog id="dlgAddBlogDomain">
+    <form id="add-domain-form" method="post" action="/dashboard/blogs/add-domain" hx-post="/dashboard/blogs/add-domain" hx-target="#add-domain-log" hx-swap="innerHTML" hx-indicator="#add-domain-loading">
+      <div class="modal-head">
+        <strong>Tambah Domain</strong>
+        <button type="button" onclick="closeAddDomainModal()">Close</button>
+      </div>
+      <div class="modal-body">
+        <select id="add-server-id" name="server_id" required>
+          <option value="">Pilih server</option>
+          {{range .Servers}}
+          <option value="{{.ID}}">{{.Name}} ({{.Host}})</option>
+          {{end}}
+        </select>
+        <input id="add-domain-name" type="text" name="domain" placeholder="contoh: blog.example.com" required>
+        <select id="add-canonical" name="canonical" required>
+          <option value="1">Canonical: non-www</option>
+          <option value="2">Canonical: www</option>
+        </select>
+        <select id="ssl-option" name="ssl_option" onchange="toggleSslEmail(this.value)">
+          <option value="y" selected>SSL: Ya (y)</option>
+          <option value="n">SSL: Tidak (n)</option>
+        </select>
+        <input id="ssl-email" type="email" name="ssl_email" placeholder="email untuk SSL (wajib jika SSL: Ya)" style="display:none;">
+        <small style="color:var(--muted);">Akan menjalankan <code>/home/add.sh</code> di server terpilih.</small>
+      </div>
+      <div class="modal-actions">
+        <button type="button" onclick="closeAddDomainModal()">Cancel</button>
+        <button type="submit">Run</button>
+      </div>
+      <div id="add-domain-log" style="padding: 0 14px 14px;">
+        <div id="add-domain-loading" class="loading-indicator">
+          <span class="spinner"></span>
+          <span>Menjalankan add.sh, mohon tunggu...</span>
+        </div>
+        {{template "partials_add_domain_log.html" .}}
+      </div>
+    </form>
+  </dialog>
+  <script>
+    function openDialog(id) {
+      const d = document.getElementById(id);
+      if (!d) return;
+      if (typeof d.showModal === "function") d.showModal();
+      else d.setAttribute("open", "open");
+    }
+    function closeDialog(id) {
+      const d = document.getElementById(id);
+      if (!d) return;
+      if (typeof d.close === "function") d.close();
+      else d.removeAttribute("open");
+    }
+
+    function resetAddDomainModal() {
+      const form = document.getElementById("add-domain-form");
+      if (form) form.reset();
+      const canonical = document.getElementById("add-canonical");
+      if (canonical) canonical.value = "1";
+      const logBox = document.getElementById("add-domain-log");
+      if (logBox) {
+        logBox.innerHTML = `
+          <div id="add-domain-loading" class="loading-indicator">
+            <span class="spinner"></span>
+            <span>Menjalankan add.sh, mohon tunggu...</span>
+          </div>
+        `;
+      }
+      toggleSslEmail((document.getElementById("ssl-option") || {}).value || "y");
+      const domainInput = document.getElementById("add-domain-name");
+      if (domainInput) domainInput.focus();
+    }
+
+    function openAddDomainModal() {
+      resetAddDomainModal();
+      openDialog("dlgAddBlogDomain");
+    }
+
+    function closeAddDomainModal() {
+      closeDialog("dlgAddBlogDomain");
+      resetAddDomainModal();
+    }
+
+    function switchTab(targetId, btn) {
+      document.querySelectorAll(".tab-content").forEach((el) => {
+        el.style.display = el.id === targetId ? "block" : "none";
+      });
+      document.querySelectorAll(".tabs button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+
+    function toggleSslEmail(value) {
+      const email = document.getElementById("ssl-email");
+      if (!email) return;
+      const show = String(value).toLowerCase() === "y";
+      email.style.display = show ? "block" : "none";
+      email.required = show;
+      if (!show) email.value = "";
+    }
+
+    // Keep selected tab on reload via query param.
+    const addDomainDialog = document.getElementById("dlgAddBlogDomain");
+    if (addDomainDialog) {
+      addDomainDialog.addEventListener("close", resetAddDomainModal);
+    }
+
+    // Keep selected tab on reload via query param.
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+    if (tabParam === "blogs") {
+      const btn = document.querySelector('.tabs button:nth-child(2)');
+      if (btn) switchTab("tab-blogs", btn);
+    }
+    toggleSslEmail((document.getElementById("ssl-option") || {}).value || "y");
+  </script>
+</body>
+</html>

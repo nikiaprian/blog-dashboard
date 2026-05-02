@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin - Servers</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <div>
+        <h2 style="margin:0 0 6px;">Admin - Server Inventory & Update</h2>
+      </div>
+      <div class="top-actions">
+        <form method="post" action="/logout" style="margin:0;"><button type="submit">Logout</button></form>
+      </div>
+    </div>
+    <div class="nav">
+      <a href="/admin/users">Users</a>
+      <a href="/admin/logs">Verify Logs</a>
+      <a class="active" aria-current="page" href="/admin/servers">Servers</a>
+    </div>
+    <div class="sub-actions">
+      <form method="post" action="/admin/servers/run-update" autocomplete="off" style="margin:0;">
+        <input type="hidden" name="nonce" value="{{.RunUpdateNonce}}">
+        <input type="hidden" name="command_input" value="semua">
+        <button type="submit" class="btn-green btn-lg">Run Update</button>
+      </form>
+    </div>
+    {{if .Message}}<div class="card" style="border-color: rgba(43,212,166,.35); background: rgba(43,212,166,.06);">{{.Message}}</div>{{end}}
+
+    <div class="card">
+      <div style="display:flex; justify-content: space-between; align-items:center; gap: 10px; flex-wrap:wrap;">
+        <h3 style="margin:0;">Server Inventory</h3>
+        <button type="button" class="btn-ghost" onclick="openDialog('dlgServer')">Add Server</button>
+      </div>
+      <table data-sortable="true">
+        <thead><tr>
+          <th><button type="button" class="th-sort">Name</button></th>
+          <th><button type="button" class="th-sort">User</button></th>
+          <th><button type="button" class="th-sort">Host</button></th>
+          <th><button type="button" class="th-sort" data-sort-type="number">Port</button></th>
+          <th><button type="button" class="th-sort">SSH User</button></th>
+          <th><button type="button" class="th-sort">Key</button></th>
+          <th><button type="button" class="th-sort">Status</button></th>
+          <th><button type="button" class="th-sort">Action</button></th>
+        </tr></thead>
+        <tbody>
+          {{range .Servers}}
+          <tr>
+            <td>{{.Name}}</td>
+            <td>{{if .User}}{{.User.Email}}{{else}}-{{end}}</td>
+            <td>{{.Host}}</td>
+            <td>{{.Port}}</td>
+            <td>{{.SSHUser}}</td>
+            <td>{{if .SSHKey}}{{.SSHKey.Name}} {{if .SSHKey.KeyBody}}(stored key){{else}}({{.SSHKey.KeyPath}}){{end}}{{else}}{{.SSHKeyPath}}{{end}}</td>
+            <td data-sort-value="{{if .IsEnabled}}on{{else}}off{{end}}">
+              <form method="post" action="/admin/servers/{{.ID}}/toggle" class="status-switch" onsubmit="return false;">
+                <label>
+                  <input type="checkbox" {{if .IsEnabled}}checked{{end}} onchange="toggleServerStatus(this.form, this)">
+                  <span class="status-slider"></span>
+                </label>
+                <span class="status-meta">{{if .IsEnabled}}on{{else}}off{{end}}</span>
+              </form>
+            </td>
+            <td>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button
+                  type="button"
+                  class="btn-ghost"
+                  onclick="openEditServerDialog(this)"
+                  data-id="{{.ID}}"
+                  data-name="{{.Name}}"
+                  data-user-id="{{.UserID}}"
+                  data-host="{{.Host}}"
+                  data-port="{{.Port}}"
+                  data-ssh-user="{{.SSHUser}}"
+                  data-ssh-key-id="{{.SSHKeyID}}"
+                >Edit</button>
+                <form method="post" action="/admin/servers/{{.ID}}/delete" onsubmit="return confirm('Delete server {{.Name}}?')">
+                  <button type="submit" class="btn-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content: space-between; align-items:center; gap: 10px; flex-wrap:wrap;">
+        <h3 style="margin:0;">SSH Keys</h3>
+        <button type="button" class="btn-ghost" onclick="openDialog('dlgKey')">Add SSH Key</button>
+      </div>
+      <table data-sortable="true">
+        <thead><tr>
+          <th><button type="button" class="th-sort">Name</button></th>
+          <th><button type="button" class="th-sort">Source</button></th>
+          <th><button type="button" class="th-sort">Action</button></th>
+        </tr></thead>
+        <tbody>
+          {{range .SSHKeys}}
+          <tr>
+            <td>{{.Name}}</td>
+            <td>{{if .KeyBody}}private key stored{{else}}{{.KeyPath}}{{end}}</td>
+            <td>
+              <form method="post" action="/admin/servers/keys/{{.ID}}/delete" onsubmit="return confirm('Delete SSH key {{.Name}}?')">
+                <button type="submit" class="btn-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+  {{if .CommandResults}}
+  <h3>Last Execution Results</h3>
+  <table data-sortable="true">
+    <thead><tr>
+      <th><button type="button" class="th-sort">Server</button></th>
+      <th><button type="button" class="th-sort">Status</button></th>
+      <th><button type="button" class="th-sort">Output</button></th>
+    </tr></thead>
+    <tbody>
+      {{range .CommandResults}}
+      <tr>
+        <td>{{.ServerName}}</td>
+        <td>{{if .Success}}<span class="ok">ok{{else}}<span class="fail">failed{{end}}</span></td>
+        <td><pre>{{.Output}}</pre></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+
+
+    <div class="card">
+      <div style="display:flex; justify-content: space-between; align-items:center; gap: 10px; flex-wrap:wrap;">
+        <h3 style="margin:0;">Command Logs</h3>
+        <form method="post" action="/admin/servers/logs/clear" onsubmit="return confirm('Clear ALL command logs?')">
+          <button type="submit" class="btn-danger">Clear Logs</button>
+        </form>
+      </div>
+      <table data-sortable="true">
+        <thead><tr>
+          <th><button type="button" class="th-sort" data-sort-type="date">Time</button></th>
+          <th><button type="button" class="th-sort">Server</button></th>
+          <th><button type="button" class="th-sort">Input</button></th>
+          <th><button type="button" class="th-sort">Status</button></th>
+          <th><button type="button" class="th-sort">Output</button></th>
+        </tr></thead>
+        <tbody>
+          {{range .ServerLogs}}
+          <tr>
+            <td data-sort-value="{{.CreatedAt}}">{{.CreatedAt}}</td>
+            <td>{{.ServerName}}</td>
+            <td>{{.CommandInput}}</td>
+            <td>{{if .Success}}<span class="ok">ok{{else}}<span class="fail">failed{{end}}</span></td>
+            <td><pre>{{.Output}}</pre></td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add SSH Key Modal -->
+  <dialog id="dlgKey">
+    <form method="post" action="/admin/servers/keys">
+      <div class="modal-head">
+        <div style="font-weight:800;">Add SSH Key</div>
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgKey')">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <input type="text" name="name" placeholder="key name" required>
+          <textarea name="key_body" rows="10" placeholder="-----BEGIN OPENSSH PRIVATE KEY----- ..." required></textarea>
+          <div style="color: var(--muted); font-size: 13px;">
+            Catatan: paste private key (multiline). Isi key tidak ditampilkan lagi setelah tersimpan.
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgKey')">Cancel</button>
+        <button type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add Server Modal -->
+  <dialog id="dlgServer">
+    <form method="post" action="/admin/servers">
+      <div class="modal-head">
+        <div style="font-weight:800;">Add Server</div>
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgServer')">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="modal-grid-2">
+            <input type="text" name="name" placeholder="name" required>
+            <input type="text" name="host" placeholder="hostname or ip" required>
+          </div>
+          <div class="modal-grid-2">
+            <input type="number" name="port" placeholder="port 22" value="22" required>
+            <input type="text" name="ssh_user" placeholder="ssh user" required>
+          </div>
+          <select name="user_id" required>
+            <option value="">select linked user</option>
+            {{range .Users}}
+            {{if eq .Role "user"}}<option value="{{.ID}}">{{.Email}}</option>{{end}}
+            {{end}}
+          </select>
+          <select name="ssh_key_id" required>
+            <option value="">select ssh key</option>
+            {{range .SSHKeys}}
+            <option value="{{.ID}}">{{.Name}} {{if .KeyBody}}(stored key){{else}}({{.KeyPath}}){{end}}</option>
+            {{end}}
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgServer')">Cancel</button>
+        <button type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit Server Modal -->
+  <dialog id="dlgEditServer">
+    <form id="editServerForm" method="post" action="/admin/servers/0/edit">
+      <div class="modal-head">
+        <div style="font-weight:800;">Edit Server</div>
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgEditServer')">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div class="modal-grid-2">
+            <input id="edit-server-name" type="text" name="name" placeholder="name" required>
+            <input id="edit-server-host" type="text" name="host" placeholder="hostname or ip" required>
+          </div>
+          <div class="modal-grid-2">
+            <input id="edit-server-port" type="number" name="port" placeholder="port 22" required>
+            <input id="edit-server-ssh-user" type="text" name="ssh_user" placeholder="ssh user" required>
+          </div>
+          <select id="edit-server-user-id" name="user_id" required>
+            <option value="">select linked user</option>
+            {{range .Users}}
+            {{if eq .Role "user"}}<option value="{{.ID}}">{{.Email}}</option>{{end}}
+            {{end}}
+          </select>
+          <select id="edit-server-ssh-key-id" name="ssh_key_id" required>
+            <option value="">select ssh key</option>
+            {{range .SSHKeys}}
+            <option value="{{.ID}}">{{.Name}} {{if .KeyBody}}(stored key){{else}}({{.KeyPath}}){{end}}</option>
+            {{end}}
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgEditServer')">Cancel</button>
+        <button type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    function resetDialogForm(dialog) {
+      if (!dialog) return;
+      const form = dialog.querySelector("form");
+      if (!form) return;
+      form.reset();
+      if (dialog.id === "dlgEditServer") {
+        form.action = "/admin/servers/0/edit";
+      }
+    }
+
+    function openDialog(id) {
+      const d = document.getElementById(id);
+      if (!d) return;
+      if (typeof d.showModal === "function") d.showModal();
+      else d.setAttribute("open", "open");
+    }
+    function closeDialog(id) {
+      const d = document.getElementById(id);
+      if (!d) return;
+      if (typeof d.close === "function") d.close();
+      else d.removeAttribute("open");
+      resetDialogForm(d);
+    }
+    // close on backdrop click
+    document.querySelectorAll("dialog").forEach((d) => {
+      d.addEventListener("close", () => resetDialogForm(d));
+      d.addEventListener("click", (e) => {
+        const rect = d.getBoundingClientRect();
+        const inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+                         rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
+        if (!inDialog) closeDialog(d.id);
+      });
+    });
+
+    function openEditServerDialog(btn) {
+      const form = document.getElementById("editServerForm");
+      if (!form) return;
+      const id = btn.dataset.id || "0";
+      form.action = `/admin/servers/${id}/edit`;
+      document.getElementById("edit-server-name").value = btn.dataset.name || "";
+      document.getElementById("edit-server-host").value = btn.dataset.host || "";
+      document.getElementById("edit-server-port").value = btn.dataset.port || "22";
+      document.getElementById("edit-server-ssh-user").value = btn.dataset.sshUser || "";
+      document.getElementById("edit-server-user-id").value = btn.dataset.userId || "";
+      document.getElementById("edit-server-ssh-key-id").value = btn.dataset.sshKeyId || "";
+      openDialog("dlgEditServer");
+    }
+
+    async function toggleServerStatus(form, checkbox) {
+      const statusMeta = form.querySelector(".status-meta");
+      const previous = !checkbox.checked;
+      checkbox.disabled = true;
+      try {
+        const res = await fetch(form.action, {
+          method: "POST",
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        if (!res.ok) throw new Error("toggle failed");
+        if (statusMeta) statusMeta.textContent = checkbox.checked ? "on" : "off";
+      } catch (err) {
+        checkbox.checked = previous;
+        if (statusMeta) statusMeta.textContent = previous ? "on" : "off";
+        alert("Gagal update status server.");
+      } finally {
+        checkbox.disabled = false;
+      }
+    }
+
+    function toSortableValue(text, type) {
+      const raw = (text || "").trim().toLowerCase();
+      if (type === "number") return Number(raw.replace(/[^0-9.-]/g, "")) || 0;
+      if (type === "date") {
+        const t = Date.parse(raw);
+        return Number.isNaN(t) ? 0 : t;
+      }
+      return raw;
+    }
+
+    document.querySelectorAll('table[data-sortable="true"]').forEach((table) => {
+      const tbody = table.querySelector("tbody");
+      if (!tbody) return;
+      const headers = table.querySelectorAll("thead .th-sort");
+      const sortTable = (btn, colIdx, forceDir) => {
+        const current = btn.dataset.sortDir === "asc" ? "asc" : btn.dataset.sortDir === "desc" ? "desc" : "";
+        const next = forceDir || (current === "asc" ? "desc" : "asc");
+        headers.forEach((h) => delete h.dataset.sortDir);
+        btn.dataset.sortDir = next;
+
+        const type = btn.dataset.sortType || "text";
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        rows.sort((a, b) => {
+          const aCell = a.children[colIdx];
+          const bCell = b.children[colIdx];
+          const aRaw = (aCell?.dataset.sortValue ?? aCell?.innerText ?? "");
+          const bRaw = (bCell?.dataset.sortValue ?? bCell?.innerText ?? "");
+          const av = toSortableValue(aRaw, type);
+          const bv = toSortableValue(bRaw, type);
+          if (av < bv) return next === "asc" ? -1 : 1;
+          if (av > bv) return next === "asc" ? 1 : -1;
+          return 0;
+        });
+        rows.forEach((row) => tbody.appendChild(row));
+      };
+
+      headers.forEach((btn, colIdx) => {
+        btn.addEventListener("click", () => {
+          sortTable(btn, colIdx);
+        });
+      });
+
+      // Default sorting: Name A-Z when Name header exists.
+      const defaultNameIdx = Array.from(headers).findIndex((h) => h.textContent.trim().toLowerCase() === "name");
+      if (defaultNameIdx >= 0) {
+        sortTable(headers[defaultNameIdx], defaultNameIdx, "asc");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# Secrets & local env (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
+# Binaries & build output
+/bebii-seo-dashboard
+/bebii-seo-dashboard.exe
+/cmd/server/server
+/cmd/server/server.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test / coverage
+*.out
+*.test
+coverage.html
+coverage.out
+
+# Go workspace (optional local tooling)
+go.work
+go.work.sum
+
+# Logs
+*.log
+
+# Editors & OS
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db

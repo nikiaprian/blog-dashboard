@@ -1,0 +1,26 @@
+{{define "partials_user_rows.html"}}
+{{range .Users}}
+<tr>
+  <td>{{.ID}}</td>
+  <td>{{.Email}}</td>
+  <td>{{.Role}}</td>
+  <td>{{if eq .Role "admin"}}active{{else}}{{if .IsActive}}active{{else}}inactive{{end}}{{end}}</td>
+  <td><code>{{.LicenseKey}}</code></td>
+  <td>
+    {{if ne .Role "admin"}}
+    <form class="inline" hx-post="/admin/users/{{.ID}}/toggle" hx-target="#users-body" hx-swap="innerHTML">
+      <button type="submit">Toggle Active</button>
+    </form>
+    {{end}}
+    <form class="inline" hx-post="/admin/users/{{.ID}}/reset-password" hx-target="#users-body" hx-swap="innerHTML">
+      <input type="password" name="password" placeholder="new password" required>
+      <button type="submit">Reset Password</button>
+    </form>
+    <form class="inline" hx-post="/admin/users/{{.ID}}/reset-license" hx-target="#users-body" hx-swap="innerHTML">
+      <button type="submit">Reset License</button>
+    </form>
+    <a href="/admin/users/{{.ID}}/domains">Manage Domains</a>
+  </td>
+</tr>
+{{end}}
+{{end}}
