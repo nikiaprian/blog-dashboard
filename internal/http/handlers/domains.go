@@ -216,7 +216,7 @@ func (h *Handler) handleDashboardBlogAddDomain(w http.ResponseWriter, r *http.Re
 		return
 	}
 	// Non-HTMX fallback: keep URL clean without msg query.
-	http.Redirect(w, r, "/dashboard?tab=blogs", http.StatusSeeOther)
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
 func shellQuote(s string) string {

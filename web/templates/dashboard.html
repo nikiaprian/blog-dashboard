@@ -88,12 +88,12 @@
     </div>
 
     <div class="tabs">
-      <button type="button" class="active" onclick="switchTab('tab-domains', this)">Whitelist Domain</button>
-      <button type="button" onclick="switchTab('tab-blogs', this)">Manage Blog</button>
+      <button type="button" class="active" onclick="switchTab('tab-blogs', this)">Manage Blog</button>
+      <button type="button" onclick="switchTab('tab-domains', this)">Whitelist Domain</button>
     </div>
     {{if .Message}}<div class="msg">{{.Message}}</div>{{end}}
 
-    <div class="card tab-content" id="tab-domains">
+    <div class="card tab-content" id="tab-domains" style="display:none;">
       <h3 style="margin:0 0 10px;">Domain Whitelist Saya</h3>
       <form hx-post="/dashboard/domains" hx-target="#domain-body-user" hx-swap="innerHTML" style="display:flex; gap:10px; flex-wrap:wrap;">
         <input type="text" name="domain" placeholder="example.com" required style="min-width: 260px;">
@@ -108,7 +108,7 @@
       </table>
     </div>
 
-    <div class="card tab-content" id="tab-blogs" style="display:none;">
+    <div class="card tab-content" id="tab-blogs">
       <h3 style="margin:0 0 10px;">Manage Blog</h3>
       <table>
         <thead><tr><th>Name</th><th>Host</th><th>Port</th><th>SSH User</th><th>Status</th></tr></thead>
@@ -238,17 +238,16 @@
       if (!show) email.value = "";
     }
 
-    // Keep selected tab on reload via query param.
     const addDomainDialog = document.getElementById("dlgAddBlogDomain");
     if (addDomainDialog) {
       addDomainDialog.addEventListener("close", resetAddDomainModal);
     }
 
-    // Keep selected tab on reload via query param.
+    // Default tab = Manage Blog. Use ?tab=domains for Whitelist Domain.
     const tabParam = new URLSearchParams(window.location.search).get("tab");
-    if (tabParam === "blogs") {
-      const btn = document.querySelector('.tabs button:nth-child(2)');
-      if (btn) switchTab("tab-blogs", btn);
+    if (tabParam === "domains") {
+      const btn = document.querySelector(".tabs button:nth-child(2)");
+      if (btn) switchTab("tab-domains", btn);
     }
     toggleSslEmail((document.getElementById("ssl-option") || {}).value || "y");
   </script>
