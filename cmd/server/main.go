@@ -11,9 +11,14 @@ import (
 	"bebii-seo-dashboard/internal/db"
 	apphttp "bebii-seo-dashboard/internal/http"
 	"bebii-seo-dashboard/internal/http/handlers"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env from current working directory if present (does not override existing OS env).
+	_ = godotenv.Load()
+
 	cfg := db.DBConfig{
 		Host:     getenv("DB_HOST", "127.0.0.1"),
 		Port:     getenv("DB_PORT", "3306"),
