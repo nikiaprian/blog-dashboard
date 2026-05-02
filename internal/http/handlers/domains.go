@@ -286,14 +286,18 @@ func (h *Handler) handleDashboardBlogDeletePath(w http.ResponseWriter, r *http.R
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
-// addShSudoCommand builds the remote command after the pipe for /home/add.sh.
-// If ADD_GITHUB_TOKEN is set on the dashboard host, credentials are passed with
-// sudo env ... so remote servers do not need /root/.github_token (add.sh reads env first).
-func addShSudoCommand() string {
+// buildRemoteSudoGitCommand builds a remote shell fragment for scripts that read GIT_URL / GITHUB_*.
+// Env vars are taken from ADD_GITHUB_TOKEN, ADD_GITHUB_USERNAME, ADD_GIT_URL (dashboard host).
+// If sudoWithoutToken is true and the token is empty, runs "sudo -n " + scriptWithArgs (add.sh behavior).
+// If sudoWithoutToken is false and the token is empty, returns scriptWithArgs only (legacy update.sh).
+func buildRemoteSudoGitCommand(scriptWithArgs string, sudoWithoutToken bool) string {
 	token := strings.TrimSpace(os.Getenv("ADD_GITHUB_TOKEN"))
 	token = strings.ReplaceAll(strings.ReplaceAll(token, "\n", ""), "\r", "")
 	if token == "" {
-		return "sudo -n /home/add.sh"
+		if sudoWithoutToken {
+			return "sudo -n " + scriptWithArgs
+		}
+		return scriptWithArgs
 	}
 	user := strings.TrimSpace(os.Getenv("ADD_GITHUB_USERNAME"))
 	if user == "" {
@@ -308,8 +312,22 @@ func addShSudoCommand() string {
 		b.WriteString(" GIT_URL=")
 		b.WriteString(shellQuote(u))
 	}
-	b.WriteString(" /home/add.sh")
+	b.WriteByte(' ')
+	b.WriteString(scriptWithArgs)
 	return b.String()
+}
+
+// addShSudoCommand builds the remote command after the pipe for /home/add.sh.
+// If ADD_GITHUB_TOKEN is set on the dashboard host, credentials are passed with
+// sudo env ... so remote servers do not need /root/.github_token (add.sh reads env first).
+func addShSudoCommand() string {
+	return buildRemoteSudoGitCommand("/home/add.sh", true)
+}
+
+// updateShSudoCommand builds the inner command for /home/update.sh --all (admin run-update).
+// When ADD_GITHUB_TOKEN is set, uses the same sudo env pattern as add-domain.
+func updateShSudoCommand() string {
+	return buildRemoteSudoGitCommand("/home/update.sh --all", false)
 }
 
 func shellQuote(s string) string {

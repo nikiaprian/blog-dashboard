@@ -3,8 +3,8 @@
 <div class="script-log {{if .ScriptLog.Success}}ok{{else}}fail{{end}}">
   <strong>Server: {{.ScriptLog.ServerName}}</strong>
   <pre>{{.ScriptLog.Output}}</pre>
-  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-    <button type="button" onclick="closeAddDomainModal()">Close</button>
+  <div class="cell-actions mt-md">
+    <button type="button" class="btn-ghost" onclick="closeAddDomainModal()">Close</button>
     <button type="button" onclick="resetAddDomainModal()">Tambah Domain Lagi</button>
   </div>
 </div>

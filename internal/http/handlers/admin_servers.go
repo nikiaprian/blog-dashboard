@@ -319,7 +319,9 @@ func subtleConstantTimeStringCompare(a, b string) int {
 }
 
 func runRemoteUpdateCommand(server db.RemoteServer) (string, bool) {
-	out, err := runRemoteCommand(server, "bash -lc '/home/update.sh --all'")
+	inner := updateShSudoCommand()
+	cmd := "bash -lc " + shellQuote(inner)
+	out, err := runRemoteCommand(server, cmd)
 	if err != nil {
 		return out + "\ncommand error: " + err.Error(), false
 	}

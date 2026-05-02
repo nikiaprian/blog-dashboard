@@ -3,108 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin - Verify Logs</title>
-  <style>
-    :root {
-      --bg: #0b1220;
-      --panel: #0f1a2e;
-      --panel-2: #0c1628;
-      --text: #e7edf7;
-      --muted: #9fb0c9;
-      --border: rgba(255,255,255,.10);
-      --accent: #5b8cff;
-      --accent-2: #2bd4a6;
-      --danger: #ff5b6a;
-    }
-    * { box-sizing: border-box; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
-    a { color: var(--muted); text-decoration: none; }
-    a:hover { color: var(--text); }
-    .container { max-width: 1180px; margin: 0 auto; padding: 22px; }
-    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .nav { display: flex; gap: 8px; margin: 14px 0 18px; flex-wrap: wrap; align-items: center; }
-    .nav a {
-      display: inline-flex; align-items: center;
-      padding: 6px 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(255,255,255,.03);
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1;
-      white-space: nowrap;
-    }
-    .nav a:hover { background: rgba(255,255,255,.06); }
-    .nav a.active { color: var(--text); background: rgba(91,140,255,.12); border-color: rgba(91,140,255,.35); }
-    .card { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 14px 0; }
-    table { border-collapse: collapse; width: 100%; margin-top: 12px; overflow: hidden; border-radius: 12px; border: 1px solid var(--border); }
-    th, td { border-bottom: 1px solid var(--border); padding: 10px 12px; vertical-align: top; }
-    th { text-align: left; color: var(--muted); font-weight: 600; background: rgba(255,255,255,.03); }
-    tr:hover td { background: rgba(255,255,255,.02); }
-    input, textarea, select, button { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
-    button { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.35); cursor: pointer; font-weight: 600; }
-    button:hover { background: rgba(91,140,255,.28); }
-    .btn-danger { background: rgba(255,91,106,.18); border-color: rgba(255,91,106,.35); }
-    .btn-danger:hover { background: rgba(255,91,106,.28); }
-    .ok { color: var(--accent-2); font-weight: 700; }
-    .fail { color: var(--danger); font-weight: 700; }
-    code { color: rgba(231,237,247,.92); }
-  </style>
+  <title>SEO Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/table-sort.js" defer></script>
 </head>
-<body>
-  <div class="container">
-    <div class="top">
-      <div>
-        <h2 style="margin:0 0 6px;">Admin - Verify Logs</h2>
+<body class="app">
+  <header class="app-header">
+    <div class="container">
+      <div class="app-header__row app-header__row--user">
+        <a class="app-brand" href="/admin/users">
+          <span class="app-brand__mark">S</span>
+          <span class="app-brand__text">SEO Dashboard</span>
+        </a>
+        <span class="app-header__context" title="{{.Me.Email}}">{{.Me.Email}}</span>
+        <div class="app-header__tools">
+          <form method="post" action="/logout" class="form-reset">
+            <button type="submit" class="btn-ghost btn-header">Keluar</button>
+          </form>
+        </div>
       </div>
-      <form method="post" action="/logout"><button type="submit">Logout</button></form>
     </div>
+  </header>
 
-    <div class="nav">
-      <a href="/admin/users">Users</a>
-      <a class="active" aria-current="page" href="/admin/logs">Verify Logs</a>
-      <a href="/admin/servers">Servers</a>
+  <main class="container app-main">
+    {{if .Message}}<div class="flash flash-success">{{.Message}}</div>{{end}}
+    <div class="tabs-wrap">
+      <nav class="tabs tabs--admin" aria-label="Admin">
+        <a href="/admin/users">Users</a>
+        <a class="active" aria-current="page" href="/admin/logs">Verify Logs</a>
+        <a href="/admin/servers">Servers</a>
+      </nav>
     </div>
-
-    {{if .Message}}<div class="card" style="border-color: rgba(43,212,166,.35); background: rgba(43,212,166,.06);">{{.Message}}</div>{{end}}
+    <div class="page-heading">
+      <h1 class="page-heading__title">Verify logs</h1>
+    </div>
 
     <div class="card">
-      <div style="display:flex; justify-content: space-between; align-items:center; gap: 10px; flex-wrap:wrap;">
-        <h3 style="margin:0;">Logs</h3>
-        <form method="post" action="/admin/logs/clear" onsubmit="return confirm('Clear ALL verify logs?')">
+      <div class="card-head">
+        <h3>Logs</h3>
+        <form method="post" action="/admin/logs/clear" class="form-reset" onsubmit="return confirm('Clear ALL verify logs?')">
           <button type="submit" class="btn-danger">Clear Logs</button>
         </form>
       </div>
 
-      <table>
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>Domain</th>
-        <th>License</th>
-        <th>Status</th>
-        <th>Message</th>
-        <th>Source</th>
-        <th>IP</th>
-        <th>User Agent</th>
-      </tr>
-    </thead>
-    <tbody>
-      {{range .Logs}}
-      <tr>
-        <td>{{.CreatedAt}}</td>
-        <td>{{.Domain}}</td>
-        <td><code>{{.LicenseKey}}</code></td>
-        <td>{{if .Success}}<span class="ok">{{.StatusCode}}</span>{{else}}<span class="fail">{{.StatusCode}}</span>{{end}}</td>
-        <td>{{.Message}}</td>
-        <td>{{.Source}}</td>
-        <td>{{.IPAddress}}</td>
-        <td>{{.UserAgent}}</td>
-      </tr>
-      {{end}}
-    </tbody>
-      </table>
+      <div class="table-wrap">
+        <table data-sortable="true">
+          <thead>
+            <tr>
+              <th><button type="button" class="th-sort" data-sort-type="date">Time</button></th>
+              <th><button type="button" class="th-sort">Domain</button></th>
+              <th><button type="button" class="th-sort">License</button></th>
+              <th><button type="button" class="th-sort">Status</button></th>
+              <th><button type="button" class="th-sort">Message</button></th>
+              <th><button type="button" class="th-sort">Source</button></th>
+              <th><button type="button" class="th-sort">IP</button></th>
+              <th><button type="button" class="th-sort">User Agent</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Logs}}
+            <tr>
+              <td data-sort-value="{{.CreatedAt}}">{{.CreatedAt}}</td>
+              <td>{{.Domain}}</td>
+              <td><code>{{.LicenseKey}}</code></td>
+              <td>{{if .Success}}<span class="ok">{{.StatusCode}}</span>{{else}}<span class="fail">{{.StatusCode}}</span>{{end}}</td>
+              <td>{{.Message}}</td>
+              <td>{{.Source}}</td>
+              <td>{{.IPAddress}}</td>
+              <td>{{.UserAgent}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </main>
 </body>
 </html>

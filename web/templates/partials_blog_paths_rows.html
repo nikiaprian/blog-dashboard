@@ -7,7 +7,7 @@
   <td>
     {{if and (eq .Status "ok") .CanDelete}}
     <form
-      style="margin:0;"
+      class="form-reset"
       hx-post="/dashboard/blogs/delete-path"
       hx-target="#blog-delete-log"
       hx-swap="innerHTML"

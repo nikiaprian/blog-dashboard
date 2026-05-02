@@ -3,69 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin - Users</title>
+  <title>SEO Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css">
   <script src="/static/htmx.min.js"></script>
-  <style>
-    :root {
-      --bg: #0b1220;
-      --panel: #0f1a2e;
-      --panel-2: #0c1628;
-      --text: #e7edf7;
-      --muted: #9fb0c9;
-      --border: rgba(255,255,255,.10);
-      --accent: #5b8cff;
-      --accent-2: #2bd4a6;
-      --danger: #ff5b6a;
-    }
-    * { box-sizing: border-box; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
-    a { color: var(--muted); text-decoration: none; }
-    a:hover { color: var(--text); }
-    .container { max-width: 1180px; margin: 0 auto; padding: 22px; }
-    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .nav { display: flex; gap: 8px; margin: 14px 0 18px; flex-wrap: wrap; align-items: center; }
-    .nav a {
-      display: inline-flex; align-items: center;
-      padding: 6px 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(255,255,255,.03);
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1;
-      white-space: nowrap;
-    }
-    .nav a:hover { background: rgba(255,255,255,.06); }
-    .nav a.active { color: var(--text); background: rgba(91,140,255,.12); border-color: rgba(91,140,255,.35); }
-    .card { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin: 14px 0; }
-    table { border-collapse: collapse; width: 100%; margin-top: 12px; overflow: hidden; border-radius: 12px; border: 1px solid var(--border); }
-    th, td { border-bottom: 1px solid var(--border); padding: 10px 12px; vertical-align: top; }
-    th { text-align: left; color: var(--muted); font-weight: 600; background: rgba(255,255,255,.03); }
-    tr:hover td { background: rgba(255,255,255,.02); }
-    input, textarea, select, button { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
-    button { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.35); cursor: pointer; font-weight: 600; }
-    button:hover { background: rgba(91,140,255,.28); }
-    form.inline { display: inline-flex; gap: 8px; margin: 0; flex-wrap: wrap; }
-    .new-user { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-top: 10px; align-items: start; }
-    .msg { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(91,140,255,.35); background: rgba(91,140,255,.08); color: var(--text); }
-  </style>
+  <script src="/static/js/table-sort.js" defer></script>
 </head>
-<body>
-  <div class="container">
-    <div class="top">
-      <h2 style="margin:0;">Admin - User Management</h2>
-      <form method="post" action="/logout"><button type="submit">Logout</button></form>
+<body class="app">
+  <header class="app-header">
+    <div class="container">
+      <div class="app-header__row app-header__row--user">
+        <a class="app-brand" href="/admin/users">
+          <span class="app-brand__mark">S</span>
+          <span class="app-brand__text">SEO Dashboard</span>
+        </a>
+        <span class="app-header__context" title="{{.Me.Email}}">{{.Me.Email}}</span>
+        <div class="app-header__tools">
+          <form method="post" action="/logout" class="form-reset">
+            <button type="submit" class="btn-ghost btn-header">Keluar</button>
+          </form>
+        </div>
+      </div>
     </div>
-    <div class="nav">
-      <a class="active" aria-current="page" href="/admin/users">Users</a>
-      <a href="/admin/logs">Verify Logs</a>
-      <a href="/admin/servers">Servers</a>
-    </div>
+  </header>
 
-    {{if .Message}}<div class="msg">{{.Message}}</div>{{end}}
+  <main class="container app-main">
+    {{if .Message}}<div class="flash flash-success">{{.Message}}</div>{{end}}
+    <div class="tabs-wrap">
+      <nav class="tabs tabs--admin" aria-label="Admin">
+        <a class="active" aria-current="page" href="/admin/users">Users</a>
+        <a href="/admin/logs">Verify Logs</a>
+        <a href="/admin/servers">Servers</a>
+      </nav>
+    </div>
+    <div class="page-heading">
+      <h1 class="page-heading__title">User management</h1>
+    </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px;">Create User</h3>
+      <h3 class="card-title">Create User</h3>
       <form
         class="new-user"
         method="post"
@@ -85,16 +60,48 @@
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px;">Users</h3>
-      <table>
-        <thead>
-          <tr><th>ID</th><th>Email</th><th>Role</th><th>Status</th><th>License Key</th><th>Action</th></tr>
-        </thead>
-        <tbody id="users-body" hx-get="/admin/users/table" hx-trigger="load" hx-swap="innerHTML">
-          {{template "partials_user_rows.html" .}}
-        </tbody>
-      </table>
+      <h3 class="card-title">Users</h3>
+      <div class="table-wrap">
+        <table class="table-admin-users" data-sortable="true">
+          <thead>
+            <tr>
+              <th><button type="button" class="th-sort" data-sort-type="number">ID</button></th>
+              <th><button type="button" class="th-sort">Email</button></th>
+              <th><button type="button" class="th-sort">Role</button></th>
+              <th><button type="button" class="th-sort">Status</button></th>
+              <th><button type="button" class="th-sort">License Key</button></th>
+              <th><button type="button" class="th-sort">Action</button></th>
+            </tr>
+          </thead>
+          <tbody id="users-body" hx-get="/admin/users/table" hx-trigger="load" hx-swap="innerHTML">
+            {{template "partials_user_rows.html" .}}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </main>
+  <script>
+    function htmxUserToggleForm(event) {
+      var elt = event.detail && event.detail.elt;
+      if (!elt) return null;
+      return elt.tagName === "FORM" ? elt : elt.closest ? elt.closest("form") : null;
+    }
+    function htmxUserToggleBefore(event) {
+      var form = htmxUserToggleForm(event);
+      var inp = form && form.querySelector(".status-input");
+      if (inp) inp.disabled = true;
+    }
+    function htmxUserToggleAfter(event) {
+      var form = htmxUserToggleForm(event);
+      var inp = form && form.querySelector(".status-input");
+      if (inp) inp.disabled = false;
+      if (event.detail && !event.detail.successful && inp) {
+        inp.checked = !inp.checked;
+        var on = "User aktif — matikan untuk menonaktifkan";
+        var off = "User nonaktif — aktifkan";
+        inp.setAttribute("aria-label", inp.checked ? on : off);
+      }
+    }
+  </script>
 </body>
 </html>

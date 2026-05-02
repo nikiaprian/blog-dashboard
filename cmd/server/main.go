@@ -54,7 +54,9 @@ func main() {
 		log.Fatalf("seed default data: %v", err)
 	}
 
-	tmpl, err := template.ParseGlob("web/templates/*.html")
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"add1": func(i int) int { return i + 1 },
+	}).ParseGlob("web/templates/*.html")
 	if err != nil {
 		log.Fatalf("parse templates: %v", err)
 	}

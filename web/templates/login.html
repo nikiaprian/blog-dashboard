@@ -3,36 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Bebii SEO - Login</title>
-  <style>
-    :root {
-      --bg: #0b1220;
-      --panel: #0f1a2e;
-      --panel-2: #0c1628;
-      --text: #e7edf7;
-      --muted: #9fb0c9;
-      --border: rgba(255,255,255,.10);
-      --accent: #5b8cff;
-      --danger: #ff5b6a;
-    }
-    * { box-sizing: border-box; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
-    .container { max-width: 980px; margin: 0 auto; padding: 40px 22px; }
-    .card { max-width: 520px; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid var(--border); border-radius: 16px; padding: 18px; }
-    form { display: grid; gap: 10px; }
-    input, select, button { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); }
-    button { background: rgba(91,140,255,.18); border-color: rgba(91,140,255,.35); cursor: pointer; font-weight: 700; }
-    button:hover { background: rgba(91,140,255,.28); }
-    label { color: var(--muted); font-size: 13px; }
-    .msg { color: var(--danger); margin: 0 0 10px; }
-  </style>
+  <title>SEO Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body>
+<body class="login-page">
   <div class="container">
-    <h1 style="margin:0 0 10px;">Plugin Verification Portal</h1>
-    <p style="margin:0 0 18px; color: var(--muted);">Login untuk mengelola user/domain whitelist.</p>
-    <div class="card">
-      {{if .Message}}<p class="msg">{{.Message}}</p>{{end}}
+    <div class="login-brand">
+      <a class="app-brand login-brand__logo" href="/login">
+        <span class="app-brand__mark">S</span>
+        <span class="app-brand__text">SEO Dashboard</span>
+      </a>
+      <h1>SEO Dashboard</h1>
+      <p>Login untuk mengelola blog/domain whitelist.</p>
+    </div>
+    <div class="login-card">
+      {{if .Message}}<p class="login-msg">{{.Message}}</p>{{end}}
       <form method="post" action="/login">
         <label>Email</label>
         <input type="email" name="email" required>
