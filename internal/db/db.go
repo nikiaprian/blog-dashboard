@@ -582,15 +582,15 @@ func ClearServerCommandLogs(conn *gorm.DB) error {
 }
 
 func GetUserBlogRepoAck(conn *gorm.DB, userID int64) (string, error) {
-	var row UserBlogRepoAck
-	err := conn.Where("user_id = ?", userID).First(&row).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", nil
-	}
+	var rows []UserBlogRepoAck
+	err := conn.Where("user_id = ?", userID).Limit(1).Find(&rows).Error
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(row.AcknowledgedSHA), nil
+	if len(rows) == 0 {
+		return "", nil
+	}
+	return strings.TrimSpace(rows[0].AcknowledgedSHA), nil
 }
 
 func SetUserBlogRepoAck(conn *gorm.DB, userID int64, fullSHA string) error {

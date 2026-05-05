@@ -6,6 +6,7 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -81,6 +82,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/", h.handleIndex)
 	mux.HandleFunc("/login", h.handleLogin)
 	mux.HandleFunc("/logout", h.handleLogout)
+	mux.HandleFunc("/account/password", h.requireAuth("user", h.handleAccountPassword))
 
 	mux.HandleFunc("/admin/users", h.requireAuth("admin", h.handleAdminUsers))
 	mux.HandleFunc("/admin/users/table", h.requireAuth("admin", h.handleAdminUsersTable))
@@ -156,6 +158,57 @@ func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	auth.ClearSessionCookie(w)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (h *Handler) handleAccountPassword(w http.ResponseWriter, r *http.Request) {
+	me, err := h.currentUser(r)
+	if err != nil || me == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	redirectTarget := "/dashboard"
+	if me.Role == "admin" {
+		redirectTarget = "/admin/users"
+	}
+	switch r.Method {
+	case http.MethodGet:
+		_ = h.Templates.ExecuteTemplate(w, "account_password.html", ViewData{
+			Title:   "Ubah Password",
+			Me:      me,
+			Message: strings.TrimSpace(r.URL.Query().Get("msg")),
+		})
+	case http.MethodPost:
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "bad form", http.StatusBadRequest)
+			return
+		}
+		current := r.FormValue("current_password")
+		nextPwd := r.FormValue("new_password")
+		confirm := r.FormValue("confirm_password")
+		if current == "" || nextPwd == "" || confirm == "" {
+			http.Redirect(w, r, "/account/password?msg="+url.QueryEscape("Semua field password wajib diisi."), http.StatusSeeOther)
+			return
+		}
+		if nextPwd != confirm {
+			http.Redirect(w, r, "/account/password?msg="+url.QueryEscape("Konfirmasi password baru tidak cocok."), http.StatusSeeOther)
+			return
+		}
+		if len(nextPwd) < 8 {
+			http.Redirect(w, r, "/account/password?msg="+url.QueryEscape("Password baru minimal 8 karakter."), http.StatusSeeOther)
+			return
+		}
+		if err := auth.CheckPassword(me.PasswordHash, current); err != nil {
+			http.Redirect(w, r, "/account/password?msg="+url.QueryEscape("Password saat ini salah."), http.StatusSeeOther)
+			return
+		}
+		if err := db.ResetUserPassword(h.DB, me.ID, nextPwd); err != nil {
+			http.Error(w, "cannot update password", http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, redirectTarget+"?msg="+url.QueryEscape("Password berhasil diubah."), http.StatusSeeOther)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func (h *Handler) handleVerify(w http.ResponseWriter, r *http.Request) {
