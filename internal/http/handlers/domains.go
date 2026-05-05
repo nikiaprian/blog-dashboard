@@ -427,8 +427,12 @@ func (h *Handler) handleDashboardRunUpdate(w http.ResponseWriter, r *http.Reques
 		http.Redirect(w, r, "/dashboard?msg="+url.QueryEscape("Tidak ada server yang ditautkan ke akun Anda."), http.StatusSeeOther)
 		return
 	}
+	successCount := 0
 	for _, s := range servers {
 		output, ok := runRemoteUpdateCommand(s)
+		if ok {
+			successCount++
+		}
 		_ = db.CreateServerCommandLog(h.DB, db.ServerCommandLog{
 			ServerID:     s.ID,
 			ServerName:   s.Name,
@@ -437,7 +441,14 @@ func (h *Handler) handleDashboardRunUpdate(w http.ResponseWriter, r *http.Reques
 			Output:       output,
 		})
 	}
-	msg := fmt.Sprintf("Update dijalankan pada %d server yang ditautkan ke akun Anda (semua host).", len(servers))
+	// If all linked servers finished successfully, mark current HEAD as acknowledged
+	// so the "update available" banner disappears until a newer commit appears.
+	if successCount == len(servers) {
+		if sha, _, ghErr := getCachedBebiiBlogMainHEAD(context.WithoutCancel(r.Context()), true); ghErr == nil && sha != "" {
+			_ = db.SetUserBlogRepoAck(h.DB, me.ID, sha)
+		}
+	}
+	msg := fmt.Sprintf("Run update selesai: %d/%d server berhasil.", successCount, len(servers))
 	http.Redirect(w, r, "/dashboard?msg="+url.QueryEscape(msg), http.StatusSeeOther)
 }
 
