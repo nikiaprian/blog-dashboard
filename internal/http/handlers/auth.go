@@ -36,7 +36,16 @@ type ViewData struct {
 	ScriptLog      *ScriptRunLog
 	SSHKeys        []db.SSHKey
 	ServerLogs     []db.ServerCommandLog
+	UserServerLogs []UserServerLogRow
 	CommandResults []CommandResult
+	// Blog repo (GitHub main) update banner — user dashboard only
+	BlogMainUpdateAvailable bool
+}
+
+// UserServerLogRow is a server_command_logs row plus hostname for the linked server (user dashboard).
+type UserServerLogRow struct {
+	db.ServerCommandLog
+	Host string
 }
 
 type CommandResult struct {
@@ -88,6 +97,9 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/dashboard/blogs/paths/table", h.requireAuth("user", h.handleDashboardBlogPathsTable))
 	mux.HandleFunc("/dashboard/blogs/add-domain", h.requireAuth("user", h.handleDashboardBlogAddDomain))
 	mux.HandleFunc("/dashboard/blogs/delete-path", h.requireAuth("user", h.handleDashboardBlogDeletePath))
+	mux.HandleFunc("/dashboard/servers/run-update", h.requireAuth("user", h.handleDashboardRunUpdate))
+	mux.HandleFunc("/dashboard/servers/logs/clear", h.requireAuth("user", h.handleDashboardClearServerLogs))
+	mux.HandleFunc("/dashboard/notifications/dismiss-blog-repo", h.requireAuth("user", h.handleDashboardDismissBlogRepo))
 
 	mux.HandleFunc("/api/verify", h.handleVerify)
 }

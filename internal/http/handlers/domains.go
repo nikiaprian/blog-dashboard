@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -39,14 +40,39 @@ func (h *Handler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cannot load linked servers", http.StatusInternalServerError)
 		return
 	}
+	cmdLogs, err := db.ListServerCommandLogsForUser(h.DB, me.ID, 100)
+	if err != nil {
+		http.Error(w, "cannot load server logs", http.StatusInternalServerError)
+		return
+	}
 	flashMsg := popDashboardFlash(w, r)
-	_ = h.Templates.ExecuteTemplate(w, "dashboard.html", ViewData{
-		Title:   "My Domains",
-		Me:      me,
-		Message: flashMsg,
-		Domains: domains,
-		Servers: servers,
-	})
+	hostByServerID := make(map[int64]string, len(servers))
+	for _, s := range servers {
+		hostByServerID[s.ID] = s.Host
+	}
+	userLogRows := make([]UserServerLogRow, len(cmdLogs))
+	for i := range cmdLogs {
+		userLogRows[i] = UserServerLogRow{
+			ServerCommandLog: cmdLogs[i],
+			Host:             hostByServerID[cmdLogs[i].ServerID],
+		}
+	}
+	vd := ViewData{
+		Title:          "My Domains",
+		Me:             me,
+		Message:        flashMsg,
+		Domains:        domains,
+		Servers:        servers,
+		UserServerLogs: userLogRows,
+	}
+	if headSHA, _, ghErr := getCachedBebiiBlogMainHEAD(context.WithoutCancel(r.Context()), false); ghErr == nil && headSHA != "" {
+		ack, _ := db.GetUserBlogRepoAck(h.DB, me.ID)
+		if !strings.EqualFold(strings.TrimSpace(headSHA), strings.TrimSpace(ack)) {
+			vd.BlogMainUpdateAvailable = true
+		}
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	_ = h.Templates.ExecuteTemplate(w, "dashboard.html", vd)
 }
 
 func (h *Handler) handleDashboardDomainsTable(w http.ResponseWriter, r *http.Request) {
@@ -370,4 +396,86 @@ func popDashboardFlash(w http.ResponseWriter, r *http.Request) string {
 		return strings.TrimSpace(c.Value)
 	}
 	return strings.TrimSpace(msg)
+}
+
+// handleDashboardRunUpdate runs /home/update.sh --all on every server linked to the current user (not only is_enabled), so all tied hosts get updated.
+func (h *Handler) handleDashboardRunUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	me, err := h.currentUser(r)
+	if err != nil || me == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	commandInput := strings.TrimSpace(strings.ToLower(r.FormValue("command_input")))
+	if commandInput != "semua" {
+		http.Error(w, "invalid command", http.StatusBadRequest)
+		return
+	}
+	servers, err := db.ListRemoteServersByUser(h.DB, me.ID)
+	if err != nil {
+		http.Error(w, "cannot load servers", http.StatusInternalServerError)
+		return
+	}
+	if len(servers) == 0 {
+		http.Redirect(w, r, "/dashboard?msg="+url.QueryEscape("Tidak ada server yang ditautkan ke akun Anda."), http.StatusSeeOther)
+		return
+	}
+	for _, s := range servers {
+		output, ok := runRemoteUpdateCommand(s)
+		_ = db.CreateServerCommandLog(h.DB, db.ServerCommandLog{
+			ServerID:     s.ID,
+			ServerName:   s.Name,
+			CommandInput: commandInput,
+			Success:      ok,
+			Output:       output,
+		})
+	}
+	msg := fmt.Sprintf("Update dijalankan pada %d server yang ditautkan ke akun Anda (semua host).", len(servers))
+	http.Redirect(w, r, "/dashboard?msg="+url.QueryEscape(msg), http.StatusSeeOther)
+}
+
+func (h *Handler) handleDashboardClearServerLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	me, err := h.currentUser(r)
+	if err != nil || me == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	if err := db.ClearServerCommandLogsForUser(h.DB, me.ID); err != nil {
+		http.Error(w, "clear logs failed", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/dashboard?msg="+url.QueryEscape("Log perintah untuk server Anda telah dihapus."), http.StatusSeeOther)
+}
+
+func (h *Handler) handleDashboardDismissBlogRepo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	me, err := h.currentUser(r)
+	if err != nil || me == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	sha, _, ghErr := getCachedBebiiBlogMainHEAD(context.WithoutCancel(r.Context()), true)
+	if ghErr != nil || sha == "" {
+		http.Redirect(w, r, "/dashboard?msg="+url.QueryEscape("Tidak bisa mengambil commit terbaru dari GitHub. Periksa ADD_GITHUB_TOKEN atau GITHUB_TOKEN di .env."), http.StatusSeeOther)
+		return
+	}
+	if err := db.SetUserBlogRepoAck(h.DB, me.ID, sha); err != nil {
+		http.Error(w, "cannot save", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/dashboard?msg="+url.QueryEscape("Notifikasi update blog disembunyikan sampai ada commit baru."), http.StatusSeeOther)
 }

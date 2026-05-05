@@ -23,6 +23,22 @@
           </form>
         </div>
       </div>
+      {{if .BlogMainUpdateAvailable}}
+      <div class="app-header__blog-notify" role="status">
+        <div class="app-header__blog-notify-main">
+          <p class="app-header__blog-notify-text">Ada update terbaru. Jalankan <strong>Run update</strong> sekarang agar server Anda mengambil versi blog terbaru.</p>
+        </div>
+        <div class="app-header__blog-notify-actions">
+          <form method="post" action="/dashboard/servers/run-update" autocomplete="off" class="form-reset">
+            <input type="hidden" name="command_input" value="semua">
+            <button type="submit" class="btn-green btn-sm">Run update</button>
+          </form>
+          <form method="post" action="/dashboard/notifications/dismiss-blog-repo" class="form-reset">
+            <button type="submit" class="btn-ghost btn-sm">Ingatkan nanti</button>
+          </form>
+        </div>
+      </div>
+      {{end}}
     </div>
   </header>
 
@@ -57,7 +73,7 @@
     </div>
 
     <div class="card tab-content" id="tab-blogs">
-      <h3 class="card-title">Manage Blog</h3>
+      <h3 class="card-title">Manage blog</h3>
       <div class="table-wrap">
         <table data-sortable="true">
           <thead><tr>
@@ -65,7 +81,6 @@
             <th><button type="button" class="th-sort">Host</button></th>
             <th><button type="button" class="th-sort" data-sort-type="number">Port</button></th>
             <th><button type="button" class="th-sort">SSH User</button></th>
-            <th><button type="button" class="th-sort">Status</button></th>
           </tr></thead>
           <tbody>
             {{range .Servers}}
@@ -74,20 +89,25 @@
               <td>{{.Host}}</td>
               <td>{{.Port}}</td>
               <td>{{.SSHUser}}</td>
-              <td>{{if .IsEnabled}}enabled{{else}}disabled{{end}}</td>
             </tr>
             {{else}}
-            <tr><td colspan="5">Belum ada server yang ditautkan ke akun ini.</td></tr>
+            <tr><td colspan="4">Belum ada server yang ditautkan ke akun ini.</td></tr>
             {{end}}
           </tbody>
         </table>
       </div>
 
       <h3 class="card-title-spaced">List Domain dari /opt</h3>
-      <form class="form-inline-flex mb" hx-get="/dashboard/blogs/paths/table" hx-target="#blog-paths-body" hx-swap="innerHTML">
-        <button type="submit">Refresh</button>
-        <button type="button" class="btn-ghost" onclick="openAddDomainModal()">Tambah Domain</button>
-      </form>
+      <div class="form-inline-flex mb">
+        <form class="form-reset form-inline-flex" hx-get="/dashboard/blogs/paths/table" hx-target="#blog-paths-body" hx-swap="innerHTML">
+          <button type="submit">Refresh</button>
+          <button type="button" class="btn-ghost" onclick="openAddDomainModal()">Tambah Domain</button>
+        </form>
+        <form method="post" action="/dashboard/servers/run-update" autocomplete="off" class="form-reset">
+          <input type="hidden" name="command_input" value="semua">
+          <button type="submit" class="btn-green btn-sm">Run update</button>
+        </form>
+      </div>
       <div class="table-wrap">
         <table data-sortable="true">
           <thead><tr>
@@ -106,6 +126,42 @@
         <span>Menjalankan delete.sh…</span>
       </div>
       <div id="blog-delete-log" class="mt-sm"></div>
+
+      <div class="user-log-section-head">
+        <div>
+          <h3 class="card-title-spaced user-log-title">Log perintah server</h3>
+          <p class="user-log-hint">Riwayat run update dan perintah lain untuk server yang ditautkan ke akun Anda (nama server + hostname).</p>
+        </div>
+        <form method="post" action="/dashboard/servers/logs/clear" class="form-reset" onsubmit="return confirm('Hapus semua log perintah untuk server yang ditautkan ke akun ini?')">
+          <button type="submit" class="btn-danger btn-sm">Hapus log</button>
+        </form>
+      </div>
+      <div class="table-wrap">
+        <table data-sortable="true">
+          <thead><tr>
+            <th><button type="button" class="th-sort" data-sort-type="date">Waktu</button></th>
+            <th><button type="button" class="th-sort">Server</button></th>
+            <th><button type="button" class="th-sort">Hostname</button></th>
+            <th><button type="button" class="th-sort">Input</button></th>
+            <th><button type="button" class="th-sort">Status</button></th>
+            <th><button type="button" class="th-sort">Output</button></th>
+          </tr></thead>
+          <tbody>
+            {{range .UserServerLogs}}
+            <tr>
+              <td data-sort-value="{{.CreatedAt}}">{{.CreatedAt}}</td>
+              <td>{{.ServerName}}</td>
+              <td>{{.Host}}</td>
+              <td>{{.CommandInput}}</td>
+              <td>{{if .Success}}<span class="ok">ok</span>{{else}}<span class="fail">failed</span>{{end}}</td>
+              <td><pre class="user-cmd-output">{{.Output}}</pre></td>
+            </tr>
+            {{else}}
+            <tr><td colspan="6">Belum ada log untuk server Anda.</td></tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
     </div>
   </main>
   <dialog id="dlgAddBlogDomain">
@@ -226,6 +282,10 @@
     if (tabParam === "domains") {
       const btn = document.querySelector(".tabs button:nth-child(2)");
       if (btn) switchTab("tab-domains", btn);
+    }
+    if (tabParam === "blogs") {
+      const btn = document.querySelector(".tabs button:nth-child(1)");
+      if (btn) switchTab("tab-blogs", btn);
     }
     toggleSslEmail((document.getElementById("ssl-option") || {}).value || "y");
   </script>

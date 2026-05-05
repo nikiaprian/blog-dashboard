@@ -96,6 +96,13 @@ type ServerCommandLog struct {
 	CreatedAt    time.Time `gorm:"column:created_at;autoCreateTime;index"`
 }
 
+// UserBlogRepoAck stores the last GitHub main-branch commit SHA the user acknowledged (dismissed banner).
+type UserBlogRepoAck struct {
+	UserID          int64     `gorm:"column:user_id;primaryKey"`
+	AcknowledgedSHA string    `gorm:"column:acknowledged_sha;size:64;not null;default:''"`
+	UpdatedAt       time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
 func OpenMySQL(cfg DBConfig) (*gorm.DB, error) {
 	conn, err := gorm.Open(mysql.Open(buildDSN(cfg, true)), &gorm.Config{
 		// Existing rows may contain legacy values that violate new FKs.
@@ -129,7 +136,7 @@ func EnsureDatabaseExists(cfg DBConfig) error {
 }
 
 func Migrate(conn *gorm.DB) error {
-	if err := conn.AutoMigrate(&User{}, &Domain{}, &Session{}, &VerifyLog{}, &SSHKey{}, &RemoteServer{}, &ServerCommandLog{}); err != nil {
+	if err := conn.AutoMigrate(&User{}, &Domain{}, &Session{}, &VerifyLog{}, &SSHKey{}, &RemoteServer{}, &ServerCommandLog{}, &UserBlogRepoAck{}); err != nil {
 		return err
 	}
 	return nil
@@ -541,6 +548,53 @@ func ListServerCommandLogs(conn *gorm.DB, limit int) ([]ServerCommandLog, error)
 	return out, err
 }
 
+// ListServerCommandLogsForUser returns command logs only for servers linked to the given user.
+func ListServerCommandLogsForUser(conn *gorm.DB, userID int64, limit int) ([]ServerCommandLog, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+	var ids []int64
+	if err := conn.Model(&RemoteServer{}).Where("user_id = ?", userID).Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return []ServerCommandLog{}, nil
+	}
+	var out []ServerCommandLog
+	err := conn.Where("server_id IN ?", ids).Order("created_at DESC").Limit(limit).Find(&out).Error
+	return out, err
+}
+
+// ClearServerCommandLogsForUser deletes command log rows whose server belongs to the user (does not touch other users' logs).
+func ClearServerCommandLogsForUser(conn *gorm.DB, userID int64) error {
+	var ids []int64
+	if err := conn.Model(&RemoteServer{}).Where("user_id = ?", userID).Pluck("id", &ids).Error; err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	return conn.Where("server_id IN ?", ids).Delete(&ServerCommandLog{}).Error
+}
+
 func ClearServerCommandLogs(conn *gorm.DB) error {
 	return conn.Exec("DELETE FROM server_command_logs").Error
+}
+
+func GetUserBlogRepoAck(conn *gorm.DB, userID int64) (string, error) {
+	var row UserBlogRepoAck
+	err := conn.Where("user_id = ?", userID).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(row.AcknowledgedSHA), nil
+}
+
+func SetUserBlogRepoAck(conn *gorm.DB, userID int64, fullSHA string) error {
+	fullSHA = strings.TrimSpace(fullSHA)
+	row := UserBlogRepoAck{UserID: userID, AcknowledgedSHA: fullSHA}
+	return conn.Save(&row).Error
 }
