@@ -54,8 +54,19 @@ func main() {
 		log.Fatalf("seed default data: %v", err)
 	}
 
+	jakartaLoc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		jakartaLoc = time.FixedZone("WIB", 7*60*60)
+	}
+
 	tmpl, err := template.New("").Funcs(template.FuncMap{
 		"add1": func(i int) int { return i + 1 },
+		"formatWIB": func(t time.Time) string {
+			if t.IsZero() {
+				return ""
+			}
+			return t.In(jakartaLoc).Format("02 Jan 2006 15:04:05 WIB")
+		},
 	}).ParseGlob("web/templates/*.html")
 	if err != nil {
 		log.Fatalf("parse templates: %v", err)

@@ -139,7 +139,7 @@
       <div class="table-wrap">
         <table data-sortable="true">
           <thead><tr>
-            <th><button type="button" class="th-sort" data-sort-type="date">Waktu</button></th>
+            <th><button type="button" class="th-sort" data-sort-type="number">Waktu</button></th>
             <th><button type="button" class="th-sort">Server</button></th>
             <th><button type="button" class="th-sort">Hostname</button></th>
             <th><button type="button" class="th-sort">Input</button></th>
@@ -149,7 +149,7 @@
           <tbody>
             {{range .UserServerLogs}}
             <tr>
-              <td data-sort-value="{{.CreatedAt}}">{{.CreatedAt}}</td>
+              <td data-sort-value="{{.CreatedAt.Unix}}">{{formatWIB .CreatedAt}}</td>
               <td>{{.ServerName}}</td>
               <td>{{.Host}}</td>
               <td>{{.CommandInput}}</td>

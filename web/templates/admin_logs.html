@@ -50,7 +50,7 @@
         <table data-sortable="true">
           <thead>
             <tr>
-              <th><button type="button" class="th-sort" data-sort-type="date">Time</button></th>
+              <th><button type="button" class="th-sort" data-sort-type="number">Time</button></th>
               <th><button type="button" class="th-sort">Domain</button></th>
               <th><button type="button" class="th-sort">License</button></th>
               <th><button type="button" class="th-sort">Status</button></th>
@@ -63,7 +63,7 @@
           <tbody>
             {{range .Logs}}
             <tr>
-              <td data-sort-value="{{.CreatedAt}}">{{.CreatedAt}}</td>
+              <td data-sort-value="{{.CreatedAt.Unix}}">{{formatWIB .CreatedAt}}</td>
               <td>{{.Domain}}</td>
               <td><code>{{.LicenseKey}}</code></td>
               <td>{{if .Success}}<span class="ok">{{.StatusCode}}</span>{{else}}<span class="fail">{{.StatusCode}}</span>{{end}}</td>
