@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>SEO Dashboard</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/htmx.min.js"></script>
   <script src="/static/js/table-sort.js" defer></script>
 </head>
 <body class="app">
@@ -31,10 +32,12 @@
       <nav class="tabs tabs--admin" aria-label="Admin">
         <a href="/admin/users">Users</a>
         <a href="/admin/logs">Verify Logs</a>
-        <a class="active" aria-current="page" href="/admin/servers">Servers</a>
+        <a id="admin-tab-servers" class="active" href="/admin/servers">Servers</a>
+        <a id="admin-tab-server-domains" href="/admin/servers?tab=domains">List Domain /opt</a>
       </nav>
     </div>
-    <div class="card">
+
+    <div class="card tab-content" id="tab-server-inventory">
       <div class="card-toolbar">
         <h2 class="card-toolbar__title">Server Inventory</h2>
         <div class="card-toolbar__actions">
@@ -108,7 +111,39 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card tab-content" id="tab-server-domains" hidden>
+      <div class="card-toolbar">
+        <h2 class="card-toolbar__title">List Domain /opt Semua Server</h2>
+        <div class="card-toolbar__actions">
+          <input
+            id="admin-domain-search"
+            class="input-domain"
+            type="search"
+            placeholder="Cari server atau domain..."
+            autocomplete="off"
+            oninput="filterAdminDomainRows()">
+          <form class="form-reset" hx-get="/admin/servers/paths/table" hx-target="#admin-blog-paths-body" hx-swap="innerHTML" hx-indicator="#admin-domain-table-loading">
+            <button type="submit" class="btn-ghost btn-sm">Refresh</button>
+          </form>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table data-sortable="true">
+          <thead><tr>
+            <th><button type="button" class="th-sort">Server</button></th>
+            <th><button type="button" class="th-sort">Path /opt</button></th>
+            <th><button type="button" class="th-sort">Status</button></th>
+          </tr></thead>
+          <tbody id="admin-blog-paths-body" hx-get="/admin/servers/paths/table" hx-trigger="load" hx-swap="innerHTML" hx-indicator="#admin-domain-table-loading"></tbody>
+        </table>
+      </div>
+      <div id="admin-domain-table-loading" class="loading-indicator mt-sm" aria-live="polite">
+        <span class="spinner"></span>
+        <span>Memuat list domain /opt dari semua server...</span>
+      </div>
+    </div>
+
+    <div class="card server-inventory-extra">
       <div class="card-head">
         <h3>SSH Keys</h3>
         <button type="button" class="btn-ghost" onclick="openDialog('dlgKey')">Add SSH Key</button>
@@ -138,7 +173,7 @@
     </div>
 
     {{if .CommandResults}}
-    <div class="card">
+    <div class="card server-inventory-extra">
       <h3 class="card-title">Last Execution Results</h3>
       <div class="table-wrap">
         <table data-sortable="true">
@@ -161,7 +196,7 @@
     </div>
     {{end}}
 
-    <div class="card">
+    <div class="card server-inventory-extra">
       <div class="card-head">
         <h3>Command Logs</h3>
         <form method="post" action="/admin/servers/logs/clear" class="form-reset" onsubmit="return confirm('Clear ALL command logs?')">
@@ -290,6 +325,52 @@
   </dialog>
 
   <script>
+    function filterAdminDomainRows() {
+      const input = document.getElementById("admin-domain-search");
+      const body = document.getElementById("admin-blog-paths-body");
+      if (!input || !body) return;
+      const keyword = input.value.trim().toLowerCase();
+      body.querySelectorAll("tr").forEach((row) => {
+        const cells = row.querySelectorAll("td");
+        if (cells.length < 2) return; // skip empty-state row
+        const server = (cells[0].textContent || "").toLowerCase();
+        const domain = (cells[1].textContent || "").toLowerCase();
+        row.hidden = keyword !== "" && !server.includes(keyword) && !domain.includes(keyword);
+      });
+    }
+
+    function initAdminDomainSearchBinding() {
+      const body = document.getElementById("admin-blog-paths-body");
+      if (!body) return;
+      body.addEventListener("htmx:afterSwap", function () {
+        filterAdminDomainRows();
+      });
+    }
+
+    function initAdminServersTabFromQuery() {
+      const tabParam = new URLSearchParams(window.location.search).get("tab");
+      const showDomains = tabParam === "domains";
+      const inventory = document.getElementById("tab-server-inventory");
+      const domains = document.getElementById("tab-server-domains");
+      const tabServers = document.getElementById("admin-tab-servers");
+      const tabDomains = document.getElementById("admin-tab-server-domains");
+      document.querySelectorAll(".server-inventory-extra").forEach((el) => {
+        el.hidden = showDomains;
+      });
+      if (inventory) inventory.hidden = showDomains;
+      if (domains) domains.hidden = !showDomains;
+      if (tabServers) {
+        tabServers.classList.toggle("active", !showDomains);
+        if (!showDomains) tabServers.setAttribute("aria-current", "page");
+        else tabServers.removeAttribute("aria-current");
+      }
+      if (tabDomains) {
+        tabDomains.classList.toggle("active", showDomains);
+        if (showDomains) tabDomains.setAttribute("aria-current", "page");
+        else tabDomains.removeAttribute("aria-current");
+      }
+    }
+
     function resetDialogForm(dialog) {
       if (!dialog) return;
       const form = dialog.querySelector("form");
@@ -358,6 +439,9 @@
       }
     }
 
+    initAdminServersTabFromQuery();
+    initAdminDomainSearchBinding();
+    filterAdminDomainRows();
   </script>
 </body>
 </html>

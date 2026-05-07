@@ -1,0 +1,13 @@
+{{define "partials_admin_blog_paths_rows.html"}}
+{{range .BlogPaths}}
+<tr>
+  <td>{{.ServerName}}</td>
+  <td>{{.Path}}</td>
+  <td>{{.Status}}</td>
+</tr>
+{{else}}
+<tr>
+  <td colspan="3">Belum ada data path /opt.</td>
+</tr>
+{{end}}
+{{end}}

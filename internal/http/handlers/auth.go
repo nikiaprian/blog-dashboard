@@ -90,6 +90,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/logs", h.requireAuth("admin", h.handleAdminLogs))
 	mux.HandleFunc("/admin/logs/", h.requireAuth("admin", h.handleAdminLogActions))
 	mux.HandleFunc("/admin/servers", h.requireAuth("admin", h.handleAdminServers))
+	mux.HandleFunc("/admin/servers/paths/table", h.requireAuth("admin", h.handleAdminServerPathsTable))
 	mux.HandleFunc("/admin/servers/", h.requireAuth("admin", h.handleAdminServerActions))
 
 	mux.HandleFunc("/dashboard", h.requireAuth("user", h.handleDashboard))

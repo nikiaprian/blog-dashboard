@@ -228,6 +228,55 @@ func (h *Handler) handleAdminServerActions(w http.ResponseWriter, r *http.Reques
 	http.NotFound(w, r)
 }
 
+func (h *Handler) handleAdminServerPathsTable(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	servers, err := db.ListRemoteServers(h.DB)
+	if err != nil {
+		http.Error(w, "cannot load servers", http.StatusInternalServerError)
+		return
+	}
+	rows := make([]BlogPathRow, 0)
+	for _, s := range servers {
+		out, cmdErr := runRemoteCommand(s, "bash -lc 'ls -1 /opt 2>/dev/null'")
+		if cmdErr != nil {
+			rows = append(rows, BlogPathRow{
+				ServerID:   s.ID,
+				ServerName: s.Name,
+				Path:       cmdErr.Error(),
+				Status:     "error",
+			})
+			continue
+		}
+		lines := strings.Split(strings.TrimSpace(out), "\n")
+		added := false
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			rows = append(rows, BlogPathRow{
+				ServerID:   s.ID,
+				ServerName: s.Name,
+				Path:       line,
+				Status:     "ok",
+			})
+			added = true
+		}
+		if !added {
+			rows = append(rows, BlogPathRow{
+				ServerID:   s.ID,
+				ServerName: s.Name,
+				Path:       "(empty /opt)",
+				Status:     "empty",
+			})
+		}
+	}
+	_ = h.Templates.ExecuteTemplate(w, "partials_admin_blog_paths_rows.html", ViewData{BlogPaths: rows})
+}
+
 func (h *Handler) renderAdminServersPage(w http.ResponseWriter, r *http.Request, me *db.User, nonce string, results []CommandResult, message string) {
 	w.Header().Set("Cache-Control", "no-store")
 	servers, err := db.ListRemoteServers(h.DB)
