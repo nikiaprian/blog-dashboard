@@ -5,7 +5,7 @@
   <td>{{.Domain}}</td>
   <td>
     <form class="inline" hx-post="/admin/users/{{$.Target.ID}}/domains/{{.ID}}/delete" hx-target="#domain-body" hx-swap="innerHTML">
-      <button type="submit">Delete</button>
+      <button type="submit" class="btn-danger btn-sm">Delete</button>
     </form>
   </td>
 </tr>

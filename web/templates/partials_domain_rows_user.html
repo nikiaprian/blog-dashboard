@@ -4,8 +4,9 @@
   <td>{{.ID}}</td>
   <td>{{.Domain}}</td>
   <td>
-    <form class="inline" hx-post="/dashboard/domains/{{.ID}}/delete" hx-target="#domain-body-user" hx-swap="innerHTML">
-      <button type="submit">Delete</button>
+    <form class="inline" hx-post="/dashboard/domains/{{.ID}}/delete" hx-target="#domain-body-user" hx-swap="innerHTML"
+      hx-on::after-request="onDomainWhitelistDeleted(event)">
+      <button type="submit" class="btn-danger btn-sm">Delete</button>
     </form>
   </td>
 </tr>

@@ -26,12 +26,12 @@
       {{if .BlogMainUpdateAvailable}}
       <div class="app-header__blog-notify" role="status">
         <div class="app-header__blog-notify-main">
-          <p class="app-header__blog-notify-text">Ada update terbaru. Jalankan <strong>Run update</strong> sekarang agar server Anda mengambil versi blog terbaru.</p>
+          <p class="app-header__blog-notify-text">Ada update terbaru. Jalankan <strong>Run Update</strong> sekarang agar server Anda mengambil versi blog terbaru.</p>
         </div>
         <div class="app-header__blog-notify-actions">
           <form method="post" action="/dashboard/servers/run-update" autocomplete="off" class="form-reset">
             <input type="hidden" name="command_input" value="semua">
-            <button type="submit" class="btn-green btn-sm">Run update</button>
+            <button type="submit" class="btn-green btn-sm">Run Update</button>
           </form>
           <form method="post" action="/dashboard/notifications/dismiss-blog-repo" class="form-reset">
             <button type="submit" class="btn-ghost btn-sm">Ingatkan nanti</button>
@@ -53,9 +53,13 @@
 
     <div class="card tab-content" id="tab-domains" hidden>
       <h3 class="card-title">Domain Whitelist Saya</h3>
+      <div class="dev-notice" role="status">
+        <strong>Perhatian.</strong> Whitelist domain masih dalam tahap pengembangan.
+      </div>
+      <p id="domain-whitelist-msg" class="action-feedback" role="status" hidden></p>
       <form class="form-inline-flex" hx-post="/dashboard/domains" hx-target="#domain-body-user" hx-swap="innerHTML">
         <input class="input-domain" type="text" name="domain" placeholder="example.com" required>
-        <button type="submit">Tambah Domain</button>
+        <button type="submit" class="btn-primary">Tambah Domain</button>
       </form>
 
       <div class="table-wrap">
@@ -100,12 +104,12 @@
       <h3 class="card-title-spaced">List Domain dari /opt</h3>
       <div class="form-inline-flex mb">
         <form class="form-reset form-inline-flex" hx-get="/dashboard/blogs/paths/table" hx-target="#blog-paths-body" hx-swap="innerHTML">
-          <button type="submit">Refresh</button>
-          <button type="button" class="btn-ghost" onclick="openAddDomainModal()">Tambah Domain</button>
+          <button type="submit" class="btn-ghost">Refresh</button>
+          <button type="button" class="btn-primary btn-sm" onclick="openAddDomainModal()">Tambah Domain</button>
         </form>
         <form method="post" action="/dashboard/servers/run-update" autocomplete="off" class="form-reset">
           <input type="hidden" name="command_input" value="semua">
-          <button type="submit" class="btn-green btn-sm">Run update</button>
+          <button type="submit" class="btn-green btn-sm">Run Update</button>
         </form>
       </div>
       <div class="table-wrap">
@@ -121,11 +125,15 @@
           </tbody>
         </table>
       </div>
-      <div id="blog-delete-loading" class="loading-indicator mt-md">
-        <span class="spinner"></span>
-        <span>Menjalankan delete.sh…</span>
-      </div>
-      <div id="blog-delete-log" class="mt-sm"></div>
+      <section class="blog-delete-section" id="blog-delete-section" aria-labelledby="blog-delete-section-heading">
+        <h4 class="blog-delete-section__title" id="blog-delete-section-heading">Log hapus blog</h4>
+        <p class="blog-delete-section__hint">Gunakan tombol <strong>Hapus</strong> pada tabel di atas. Status proses dan output <code>delete.sh</code> ditampilkan di bawah setelah Anda mengonfirmasi.</p>
+        <div id="blog-delete-loading" class="loading-indicator blog-delete-loading" aria-live="polite">
+          <span class="spinner spinner--lg"></span>
+          <span class="blog-delete-loading__text"><strong>Menghapus…</strong> Menjalankan <code>delete.sh</code> di server. Mohon tunggu.</span>
+        </div>
+        <div id="blog-delete-log" class="blog-delete-log" role="region" aria-label="Output hapus blog"></div>
+      </section>
 
       <div class="user-log-section-head">
         <div>
@@ -169,13 +177,14 @@
       hx-post="/dashboard/blogs/add-domain"
       hx-target="#add-domain-log"
       hx-swap="innerHTML"
-      hx-indicator="#add-domain-loading"
+      hx-indicator="#add-domain-modal-loading"
       hx-timeout="3600000"
       hx-on::timeout="alert('Permintaan timeout di browser. Jika pakai Nginx, naikkan proxy_read_timeout; Cloudflare sering ~100s kecuali DNS-only. add.sh mungkin masih berjalan di server.')"
-      hx-on::after-request="if (event.detail.successful === false) { var x = event.detail.xhr; var st = x ? x.status : 0; var t = (x &amp;&amp; x.responseText) ? x.responseText.substring(0,500) : ''; if (st === 0 || st === 504 || st === 502) { alert('Koneksi terputus atau gateway timeout (sering karena batas waktu Nginx/Cloudflare). Proses di server mungkin masih berjalan sampai selesai.'); } else if (t) { alert(t); } }">
+      hx-on::before-request="this.setAttribute('aria-busy','true')"
+      hx-on::after-request="this.removeAttribute('aria-busy'); if (event.detail.successful === false) { var x = event.detail.xhr; var st = x ? x.status : 0; var t = (x &amp;&amp; x.responseText) ? x.responseText.substring(0,500) : ''; if (st === 0 || st === 504 || st === 502) { alert('Koneksi terputus atau gateway timeout (sering karena batas waktu Nginx/Cloudflare). Proses di server mungkin masih berjalan sampai selesai.'); } else if (t) { alert(t); } }">
       <div class="modal-head">
         <strong class="modal-title">Tambah Domain</strong>
-        <button type="button" class="btn-ghost" onclick="closeAddDomainModal()">Close</button>
+        <button type="button" class="btn-ghost add-domain-modal-close" onclick="closeAddDomainModal()">Close</button>
       </div>
       <div class="modal-body">
         <select id="add-server-id" name="server_id" required>
@@ -198,13 +207,13 @@
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-ghost" onclick="closeAddDomainModal()">Cancel</button>
-        <button type="submit">Run</button>
+        <button type="submit" class="btn-primary">Run</button>
+      </div>
+      <div id="add-domain-modal-loading" class="loading-indicator add-domain-modal-loading" aria-live="polite">
+        <span class="spinner spinner--lg"></span>
+        <span class="add-domain-modal-loading__text"><strong>Sedang memproses…</strong> Menjalankan <code>/home/add.sh</code>. Mohon tunggu — bisa memakan beberapa menit (SSL, database, dll.). Log hasil akan muncul di bawah saat selesai.</span>
       </div>
       <div id="add-domain-log" class="add-domain-log">
-        <div id="add-domain-loading" class="loading-indicator">
-          <span class="spinner"></span>
-          <span>Menjalankan add.sh… (tunggu sampai log di bawah terisi; bisa 5–15+ menit)</span>
-        </div>
         {{template "partials_add_domain_log.html" .}}
       </div>
     </form>
@@ -229,14 +238,7 @@
       const canonical = document.getElementById("add-canonical");
       if (canonical) canonical.value = "1";
       const logBox = document.getElementById("add-domain-log");
-      if (logBox) {
-        logBox.innerHTML = `
-          <div id="add-domain-loading" class="loading-indicator">
-            <span class="spinner"></span>
-            <span>Menjalankan add.sh… (tunggu sampai log di bawah terisi; bisa 5–15+ menit)</span>
-          </div>
-        `;
-      }
+      if (logBox) logBox.innerHTML = "";
       toggleSslEmail((document.getElementById("ssl-option") || {}).value || "y");
       const domainInput = document.getElementById("add-domain-name");
       if (domainInput) domainInput.focus();
@@ -276,6 +278,22 @@
     const addDomainDialog = document.getElementById("dlgAddBlogDomain");
     if (addDomainDialog) {
       addDomainDialog.addEventListener("close", resetAddDomainModal);
+    }
+
+    function onDomainWhitelistDeleted(ev) {
+      if (!ev.detail.successful) return;
+      const el = document.getElementById("domain-whitelist-msg");
+      if (!el) return;
+      el.hidden = false;
+      el.textContent = "Domain berhasil dihapus dari whitelist.";
+      el.classList.add("action-feedback--ok");
+      el.classList.remove("action-feedback--fail");
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      clearTimeout(onDomainWhitelistDeleted._t);
+      onDomainWhitelistDeleted._t = setTimeout(function () {
+        el.hidden = true;
+        el.textContent = "";
+      }, 8000);
     }
 
     const tabParam = new URLSearchParams(window.location.search).get("tab");

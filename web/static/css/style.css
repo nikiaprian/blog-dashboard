@@ -548,6 +548,23 @@ td.td-num {
   font-size: 14px;
 }
 
+/* Pengumuman pengembangan / peringatan lembut (tab whitelist dll.) */
+.dev-notice {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(217, 119, 6, 0.42);
+  background: rgba(251, 191, 36, 0.16);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dev-notice strong {
+  color: #b45309;
+  font-weight: 700;
+}
+
 .msg-error,
 .login-msg {
   color: var(--danger);
@@ -729,8 +746,7 @@ label {
 
 input,
 textarea,
-select,
-button:not(.th-sort) {
+select {
   font-family: inherit;
   font-size: 14px;
   padding: 10px 14px;
@@ -739,6 +755,15 @@ button:not(.th-sort) {
   background: var(--surface);
   color: var(--text);
   transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+/* Ukuran dasar tombol (bukan input): jangan pakai background seperti field — jika tidak, aturan ini
+   mengalahkan .btn-primary/.btn-green/.btn-danger sehingga warna hanya keliatan saat hover */
+button:not(.th-sort) {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
 }
 
 select {
@@ -782,7 +807,7 @@ textarea {
 
 button {
   background: var(--accent);
-  border-color: var(--accent);
+  border: 1px solid var(--accent);
   color: #fff;
   cursor: pointer;
   font-weight: 600;
@@ -856,6 +881,24 @@ button.th-sort[data-sort-dir="desc"]:hover:not(:disabled) {
   color: #1e3a8a;
 }
 
+/* Aksi utama: tambah domain / Run add.sh → biru (primary) */
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Run update → hijau */
 .btn-green {
   background: var(--accent-2);
   border-color: var(--accent-2);
@@ -867,6 +910,12 @@ button.th-sort[data-sort-dir="desc"]:hover:not(:disabled) {
   border-color: #047857;
 }
 
+.btn-green:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.35);
+}
+
+/* Hapus / delete → merah */
 .btn-danger {
   background: var(--danger);
   border-color: var(--danger);
@@ -876,6 +925,11 @@ button.th-sort[data-sort-dir="desc"]:hover:not(:disabled) {
 .btn-danger:hover:not(:disabled) {
   background: #b91c1c;
   border-color: #b91c1c;
+}
+
+.btn-danger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3);
 }
 
 .btn-ghost {
@@ -1211,13 +1265,145 @@ dialog::backdrop {
   display: inline-flex;
 }
 
+/* Tambah Domain modal: htmx-request hanya ada di hx-indicator (#add-domain-modal-loading), bukan di form — pakai :has */
+#add-domain-form:has(#add-domain-modal-loading.htmx-request) .modal-actions {
+  display: none;
+}
+
+.add-domain-modal-loading.loading-indicator.htmx-request {
+  display: flex;
+  width: calc(100% - 36px);
+  margin: 0 18px 12px;
+  box-sizing: border-box;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-color: rgba(37, 99, 235, 0.35);
+  animation: add-domain-loading-pulse 1.25s ease-in-out infinite alternate;
+}
+
+.add-domain-modal-loading .add-domain-modal-loading__text {
+  line-height: 1.5;
+}
+
+.add-domain-modal-loading .add-domain-modal-loading__text strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+#add-domain-form:has(#add-domain-modal-loading.htmx-request) .modal-body {
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+#add-domain-form:has(#add-domain-modal-loading.htmx-request) .add-domain-modal-close {
+  display: none;
+}
+
+.action-feedback {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.action-feedback--ok {
+  border-color: rgba(5, 150, 105, 0.4);
+  background: var(--accent-2-soft);
+  color: var(--text);
+}
+
+.action-feedback--fail {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: var(--danger-soft);
+}
+
+.blog-delete-section {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.blog-delete-section__title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.blog-delete-section__hint {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.blog-delete-loading.loading-indicator.htmx-request {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 0;
+}
+
+.blog-delete-loading__text strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.blog-delete-log:empty {
+  display: none;
+}
+
+.script-log-lede {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.script-log-lede--ok strong {
+  color: var(--text);
+}
+
+.script-log-lede--fail strong {
+  color: #b91c1c;
+}
+
+@keyframes add-domain-loading-pulse {
+  from {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.12);
+  }
+  to {
+    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-domain-modal-loading.loading-indicator.htmx-request {
+    animation: none;
+  }
+}
+
 .spinner {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 2px solid rgba(37, 99, 235, 0.25);
   border-top-color: var(--accent);
   animation: spin 0.75s linear infinite;
+}
+
+.spinner--lg {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
 }
 
 @keyframes spin {

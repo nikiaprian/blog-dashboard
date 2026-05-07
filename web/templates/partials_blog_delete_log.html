@@ -1,6 +1,11 @@
 {{define "partials_blog_delete_log.html"}}
 {{if .ScriptLog}}
 <div class="script-log {{if .ScriptLog.Success}}ok{{else}}fail{{end}}">
+  {{if .ScriptLog.Success}}
+  <p class="script-log-lede script-log-lede--ok"><strong>Hapus selesai.</strong> Perintah <code>delete.sh</code> untuk server ini sudah dijalankan. Periksa output di bawah bila ada peringatan.</p>
+  {{else}}
+  <p class="script-log-lede script-log-lede--fail"><strong>Hapus gagal atau bermasalah.</strong> Server menjalankan <code>delete.sh</code> tetapi mengembalikan error — lihat detail di bawah.</p>
+  {{end}}
   <strong>Server: {{.ScriptLog.ServerName}}</strong>
   <pre>{{.ScriptLog.Output}}</pre>
   <div class="cell-actions mt-md">

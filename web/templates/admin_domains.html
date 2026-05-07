@@ -43,7 +43,7 @@
       <h3 class="card-title">Add Domain</h3>
       <form class="form-inline-flex" hx-post="/admin/users/{{.Target.ID}}/domains/add" hx-target="#domain-body" hx-swap="innerHTML">
         <input class="input-domain" type="text" name="domain" placeholder="example.com" required>
-        <button type="submit">Tambah Domain</button>
+        <button type="submit" class="btn-primary">Tambah Domain</button>
       </form>
     </div>
 

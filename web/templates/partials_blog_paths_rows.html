@@ -14,10 +14,10 @@
       hx-indicator="#blog-delete-loading"
       hx-timeout="3600000"
       hx-confirm="Hapus blog (slug /opt: {{.Path}}) di server {{.ServerName}}? Ini menjalankan /home/delete.sh --apps."
-      hx-on::after-request="if (event.detail.successful === false) { var x = event.detail.xhr; var st = x ? x.status : 0; var t = (x &amp;&amp; x.responseText) ? x.responseText.substring(0,500) : ''; if (st === 0 || st === 504 || st === 502) { alert('Koneksi terputus atau gateway timeout. delete.sh mungkin masih berjalan.'); } else if (t) { alert(t); } }">
+      hx-on::after-request="if (event.detail.successful === false) { var x = event.detail.xhr; var st = x ? x.status : 0; var t = (x &amp;&amp; x.responseText) ? x.responseText.substring(0,500) : ''; if (st === 0 || st === 504 || st === 502) { alert('Koneksi terputus atau gateway timeout. delete.sh mungkin masih berjalan.'); } else if (t) { alert(t); } } else { var sec = document.getElementById('blog-delete-section'); var log = document.getElementById('blog-delete-log'); if (log) { log.scrollIntoView({ behavior: 'smooth', block: 'start' }); } else if (sec) { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }">
       <input type="hidden" name="server_id" value="{{.ServerID}}">
       <input type="hidden" name="app_slug" value="{{.Path}}">
-      <button type="submit" class="btn-danger">Delete</button>
+      <button type="submit" class="btn-danger btn-sm">Delete</button>
     </form>
     {{else}}
     —
