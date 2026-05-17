@@ -11,6 +11,7 @@ MVP portal verifikasi plugin berbasis Golang + HTMX.
 - License key per user + reset license key dari admin
 - Endpoint verifikasi lisensi: `GET /api/verify?domain=example.com&license_key=...`
 - Audit verify logs (IP, user-agent, source, status) dan halaman admin `/admin/logs`
+- **Artifact registry**: upload manual `.tar.gz`/`.zip` di `/admin/registry`, atau push dari GitHub Actions; pull via API untuk server manapun
 
 ## Tech Stack
 
@@ -51,6 +52,9 @@ Database akan otomatis dibuat saat startup jika belum ada (`CREATE DATABASE IF N
 - `DB_NAME` (default: `bebii_seo_dashboard`)
 - `PLUGIN_SHARED_TOKEN` (opsional, jika diisi maka endpoint verify wajib header `x-plugin-token`)
 - `BEBII_GLOBAL_KEY` (opsional, untuk decrypt header `x-digital` ala auth-lp)
+- `REGISTRY_ROOT` (default: `data/registry`) — penyimpanan paket di disk
+- `REGISTRY_UPLOAD_TOKEN` (opsional; wajib untuk upload API dari CI; upload admin UI tidak perlu token ini)
+- `REGISTRY_READ_TOKEN` (opsional; jika diisi, download API memerlukan token yang sama)
 
 Contoh `.env`:
 
@@ -100,3 +104,20 @@ Contoh respons:
 Jika plugin mengirim `x-digital` terenkripsi (dengan `BEBII_GLOBAL_KEY`), endpoint akan decrypt otomatis seperti flow `auth-lp`. Mode ini tidak membutuhkan Redis.
 
 6. Deactivate user dari admin, lalu cek ulang endpoint verify untuk domain user tersebut (harus `allowed: false` jika tidak ada user aktif lain dengan domain sama).
+
+## Artifact Registry
+
+1. Login admin → tab **Registry** (`/admin/registry`).
+2. Upload manual: isi nama artefak (huruf kecil, angka, strip), versi, pilih file.
+3. Untuk CI: set `REGISTRY_UPLOAD_TOKEN` di `.env`, lalu salin workflow dari `.github/workflows/publish-to-bebii-registry.example.yml` ke repo proyek yang di-build (ringkas: `deploy/registry-upload.example.yml`).
+
+```bash
+# Manifest
+curl -fsS "http://localhost:8080/api/registry/my-artifact/manifest"
+
+# Download latest (JSON)
+curl -fsS "http://localhost:8080/api/registry/my-artifact/latest"
+
+# Download file
+curl -fsSL -o pkg.tar.gz "http://localhost:8080/api/registry/my-artifact/1.0.0/my-artifact-1.0.0.tar.gz"
+```

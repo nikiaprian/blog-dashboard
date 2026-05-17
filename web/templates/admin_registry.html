@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SEO Dashboard — Registry</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/htmx.min.js"></script>
+  <script src="/static/js/table-sort.js" defer></script>
+</head>
+<body class="app">
+  <header class="app-header">
+    <div class="container">
+      <div class="app-header__row app-header__row--user">
+        <a class="app-brand" href="/admin/users">
+          <span class="app-brand__mark">S</span>
+          <span class="app-brand__text">SEO Dashboard</span>
+        </a>
+        <a class="app-header__context app-header__context--link" href="/account/password" title="Klik untuk ubah password">{{.Me.Email}}</a>
+        <div class="app-header__tools">
+          <form method="post" action="/logout" class="form-reset">
+            <button type="submit" class="btn-ghost btn-header">Keluar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container app-main">
+    {{if .Message}}<div class="flash flash-success">{{.Message}}</div>{{end}}
+    <div class="tabs-wrap">
+      <nav class="tabs tabs--admin" aria-label="Admin">
+        <a href="/admin/users">Users</a>
+        <a href="/admin/logs">Verify Logs</a>
+        <a href="/admin/servers">Servers</a>
+        <a href="/admin/servers?tab=domains">List Domain /opt</a>
+        <a class="active" aria-current="page" href="/admin/registry">Registry</a>
+      </nav>
+    </div>
+
+    <div class="page-heading page-heading--registry">
+      <div class="page-heading__intro">
+        <h1 class="page-heading__title">Artifact Registry</h1>
+        <div class="page-heading__sub-row">
+          <p class="page-heading__sub muted">Paket <code>.tar.gz</code> / <code>.zip</code> untuk deploy; pull via API dari server manapun.</p>
+          <button type="button" class="btn-green btn-sm page-heading__upload-btn" onclick="openDialog('dlgRegistryUpload')">Upload paket</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Artefak</h3>
+      {{if not .RegistryArtifacts}}
+      <p class="muted">Belum ada paket. Klik <strong>Upload paket</strong> untuk menambahkan.</p>
+      {{else}}
+      <ul class="registry-artifact-list">
+        {{range .RegistryArtifacts}}
+        <li>
+          <a href="/admin/registry?artifact={{.}}"{{if eq $.RegistrySelectedArtifact .}} class="registry-artifact-list__active"{{end}}>{{.}}</a>
+        </li>
+        {{end}}
+      </ul>
+      {{end}}
+    </div>
+
+    {{if .RegistryManifest}}
+    <div class="card">
+      <div class="card-toolbar">
+        <h3 class="card-toolbar__title">Versi: {{.RegistryManifest.Artifact}}</h3>
+        <a class="link-muted btn-sm" href="/admin/registry">← Semua artefak</a>
+      </div>
+      {{if not .RegistryManifest.Releases}}
+      <p class="muted">Belum ada rilis untuk artefak ini.</p>
+      {{else}}
+      <p class="muted">Latest: <strong>{{if .RegistryManifest.Latest}}{{.RegistryManifest.Latest}}{{else}}—{{end}}</strong></p>
+      <div class="table-wrap">
+        <table class="table-admin-users" data-sortable="true">
+          <thead>
+            <tr>
+              <th>Versi</th>
+              <th>File</th>
+              <th>Ukuran</th>
+              <th>SHA256</th>
+              <th>Diunggah</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .RegistryManifest.Releases}}
+            <tr>
+              <td>
+                {{.Version}}
+                {{if eq $.RegistryManifest.Latest .Version}}<span class="badge badge-ok">latest</span>{{end}}
+              </td>
+              <td><code>{{.File}}</code></td>
+              <td>{{formatSize .Size}}</td>
+              <td><code class="sha-cell" title="{{.SHA256}}">{{truncate .SHA256 12}}</code></td>
+              <td>{{formatWIB .UploadedAt}}</td>
+              <td class="registry-actions">
+                <a class="btn-ghost btn-sm" href="{{registryDL $.RegistryManifest.Artifact .Version .File}}">Download</a>
+                {{if ne $.RegistryManifest.Latest .Version}}
+                <form method="post" action="/admin/registry/{{$.RegistryManifest.Artifact}}/actions" class="form-inline form-reset">
+                  <input type="hidden" name="action" value="set-latest">
+                  <input type="hidden" name="version" value="{{.Version}}">
+                  <button type="submit" class="btn-ghost btn-sm">Set latest</button>
+                </form>
+                {{end}}
+                <form method="post" action="/admin/registry/{{$.RegistryManifest.Artifact}}/actions" class="form-inline form-reset" onsubmit="return confirm('Hapus versi {{.Version}}?');">
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="version" value="{{.Version}}">
+                  <button type="submit" class="btn-danger btn-sm">Hapus</button>
+                </form>
+              </td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      <p class="hint muted" style="margin-top:0.75rem">
+        Manifest API:
+        <code>GET /api/registry/{{.RegistryManifest.Artifact}}/manifest</code>
+        · Latest:
+        <code>GET /api/registry/{{.RegistryManifest.Artifact}}/latest</code>
+      </p>
+      {{end}}
+    </div>
+    {{end}}
+  </main>
+
+  <dialog id="dlgRegistryUpload">
+    <form method="post" action="/admin/registry" enctype="multipart/form-data">
+      <div class="modal-head">
+        <div class="modal-title">Upload paket</div>
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgRegistryUpload')">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="registry-upload">
+          <label>
+            <span class="label-text">Nama artefak</span>
+            <input type="text" name="artifact" list="artifact-names" placeholder="nama-artefak" pattern="[a-z0-9][a-z0-9-]*" required value="{{.RegistrySelectedArtifact}}">
+            <datalist id="artifact-names">
+              {{range .RegistryArtifacts}}<option value="{{.}}">{{end}}
+            </datalist>
+          </label>
+          <label>
+            <span class="label-text">Versi</span>
+            <input type="text" name="version" placeholder="1.9.15" required>
+          </label>
+          <label>
+            <span class="label-text">Git SHA (opsional)</span>
+            <input type="text" name="git_sha" placeholder="abc123…">
+          </label>
+          <label>
+            <span class="label-text">File</span>
+            <input type="file" name="file" accept=".tar.gz,.tgz,.zip,application/gzip,application/zip" required>
+          </label>
+        </div>
+        {{if .RegistryHasUploadToken}}
+        <p class="hint muted registry-modal-hint">CI: salin <code>.github/workflows/publish-to-bebii-registry.example.yml</code> ke repo proyek Anda (lihat komentar di file).</p>
+        {{else}}
+        <p class="hint muted registry-modal-hint">Untuk GitHub Actions, set <code>REGISTRY_UPLOAD_TOKEN</code> di <code>.env</code>.</p>
+        {{end}}
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" onclick="closeDialog('dlgRegistryUpload')">Batal</button>
+        <button type="submit" class="btn-green">Upload</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    function resetDialogForm(dialog) {
+      if (!dialog) return;
+      const form = dialog.querySelector("form");
+      if (!form) return;
+      form.reset();
+      const artifactInput = form.querySelector('input[name="artifact"]');
+      if (artifactInput) artifactInput.value = {{printf "%q" .RegistrySelectedArtifact}};
+    }
+    function openDialog(id) {
+      const d = document.getElementById(id);
+      if (!d) return;
+      if (typeof d.showModal === "function") d.showModal();
+      else d.setAttribute("open", "open");
+    }
+    function closeDialog(id) {
+      const d = document.getElementById(id);
+      if (!d) return;
+      if (typeof d.close === "function") d.close();
+      else d.removeAttribute("open");
+      resetDialogForm(d);
+    }
+    document.querySelectorAll("dialog").forEach((d) => {
+      d.addEventListener("close", () => resetDialogForm(d));
+      d.addEventListener("click", (e) => {
+        const rect = d.getBoundingClientRect();
+        const inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+                         rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
+        if (!inDialog) closeDialog(d.id);
+      });
+    });
+  </script>
+</body>
+</html>

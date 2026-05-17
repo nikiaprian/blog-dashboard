@@ -1584,6 +1584,115 @@ small code {
   word-break: break-word;
 }
 
+.page-heading--registry {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.page-heading--registry .page-heading__intro {
+  width: 100%;
+}
+
+.page-heading--registry .page-heading__title {
+  margin-bottom: 8px;
+}
+
+.page-heading__sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+
+.page-heading__sub-row .page-heading__sub {
+  margin: 0;
+  flex: 1 1 200px;
+  font-size: 14px;
+}
+
+.page-heading__upload-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.registry-modal-hint {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+/* Artifact registry (admin) */
+.registry-upload {
+  display: grid;
+  gap: 14px;
+}
+
+#dlgRegistryUpload .registry-upload {
+  max-width: none;
+}
+
+.registry-upload label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.registry-upload .label-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.registry-artifact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.registry-artifact-list a {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  text-decoration: none;
+}
+
+.registry-artifact-list a.registry-artifact-list__active,
+.registry-artifact-list a:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.registry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.registry-actions form {
+  display: inline;
+}
+
+.sha-cell {
+  font-size: 12px;
+}
+
+.badge-ok {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: var(--accent-2-soft);
+  color: var(--accent-2);
+}
+
 @media (max-width: 768px) {
   .app-header__row:not(.app-header__row--user) {
     flex-direction: column;

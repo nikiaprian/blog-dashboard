@@ -23,6 +23,10 @@ coverage.out
 go.work
 go.work.sum
 
+# Registry uploads (keep data/registry/.gitkeep)
+/data/registry/*
+!/data/registry/.gitkeep
+
 # Logs
 *.log
 

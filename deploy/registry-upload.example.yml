@@ -1,0 +1,51 @@
+# Salin ke repo proyek Anda: .github/workflows/publish-to-bebii-registry.yml
+# Versi lengkap + workflow_dispatch ada di:
+#   bebii-seo-dashboard/.github/workflows/publish-to-bebii-registry.example.yml
+#
+# Secrets GitHub:
+#   BEBII_REGISTRY_URL    → https://dashboard-anda.com
+#   BEBII_REGISTRY_TOKEN  → REGISTRY_UPLOAD_TOKEN di server
+
+name: Publish to Bebii Registry
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  ARTIFACT_NAME: my-artifact
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build archive
+        run: |
+          mkdir -p dist
+          echo "release" > dist/VERSION.txt
+          tar -czf "${{ env.ARTIFACT_NAME }}-${{ steps.ver.outputs.version }}.tar.gz" -C dist .
+
+      - name: Upload to Bebii registry
+        env:
+          REGISTRY_URL: ${{ secrets.BEBII_REGISTRY_URL }}
+          REGISTRY_TOKEN: ${{ secrets.BEBII_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          REGISTRY_URL="${REGISTRY_URL%/}"
+          VERSION="${{ steps.ver.outputs.version }}"
+          ARTIFACT="${{ env.ARTIFACT_NAME }}"
+          FILE="${ARTIFACT}-${VERSION}.tar.gz"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${REGISTRY_TOKEN}" \
+            -H "X-Registry-Version: ${VERSION}" \
+            -H "X-Registry-Filename: ${FILE}" \
+            -H "X-Git-Sha: ${GITHUB_SHA}" \
+            -H "Content-Type: application/gzip" \
+            --data-binary @"${FILE}" \
+            "${REGISTRY_URL}/api/registry/${ARTIFACT}?version=${VERSION}&filename=${FILE}&git_sha=${GITHUB_SHA}"

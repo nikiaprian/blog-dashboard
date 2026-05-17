@@ -1,0 +1,136 @@
+# # =============================================================================
+# # Contoh: build paket → upload ke Bebii SEO Dashboard Artifact Registry
+# # =============================================================================
+# #
+# # CARA PAKAI (di repo proyek yang mau di-publish, BUKAN wajib di repo dashboard):
+# #   1. Salin file ini ke:  .github/workflows/publish-to-bebii-registry.yml
+# #   2. Hapus suffix .example dari nama file
+# #   3. Sesuaikan env ARTIFACT_NAME, langkah Build archive, dan trigger
+# #
+# # SECRETS di GitHub (Settings → Secrets and variables → Actions):
+# #   BEBII_REGISTRY_URL    → https://dashboard-anda.com  (tanpa slash di akhir)
+# #   BEBII_REGISTRY_TOKEN  → sama dengan REGISTRY_UPLOAD_TOKEN di .env server
+# #
+# # SERVER (.env bebii-seo-dashboard):
+# #   REGISTRY_UPLOAD_TOKEN=<secret yang sama>
+# #   REGISTRY_ROOT=/var/bebii-registry   # opsional
+# #
+# # API yang dipanggil:
+# #   POST {BEBII_REGISTRY_URL}/api/registry/{artifact}
+# #   Header: Authorization: Bearer {token}
+# #           X-Registry-Version, X-Registry-Filename, X-Git-Sha (opsional)
+# #
+# # =============================================================================
+
+# name: Publish to Bebii Registry
+
+# on:
+#   # Rilis saat push tag v1.2.3
+#   push:
+#     tags:
+#       - "v*"
+
+#   # Jalankan manual dari tab Actions (isi versi jika bukan dari tag)
+#   workflow_dispatch:
+#     inputs:
+#       version:
+#         description: "Versi paket (contoh 1.2.3). Kosongkan jika trigger dari tag v*"
+#         required: false
+#         type: string
+#       artifact:
+#         description: "Nama artefak di registry (huruf kecil, strip)"
+#         required: false
+#         default: "my-artifact"
+#         type: string
+
+# env:
+#   # Ganti sesuai nama artefak di dashboard /admin/registry
+#   ARTIFACT_NAME: my-artifact
+
+# jobs:
+#   publish:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Resolve version
+#         id: ver
+#         run: |
+#           if [ -n "${{ github.event.inputs.version }}" ]; then
+#             VERSION="${{ github.event.inputs.version }}"
+#           elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+#             VERSION="${GITHUB_REF_NAME#v}"
+#           else
+#             VERSION="$(date +%Y.%m.%d)-${GITHUB_SHA::7}"
+#           fi
+#           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+#           echo "Resolved version: ${VERSION}"
+
+#       - name: Resolve artifact name
+#         id: artifact
+#         run: |
+#           if [ -n "${{ github.event.inputs.artifact }}" ]; then
+#             NAME="${{ github.event.inputs.artifact }}"
+#           else
+#             NAME="${{ env.ARTIFACT_NAME }}"
+#           fi
+#           echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+
+#       # -----------------------------------------------------------------------
+#       # SESUAIKAN: build proyek Anda, lalu arahkan -C ke folder yang di-archive
+#       # -----------------------------------------------------------------------
+#       - name: Build project
+#         run: |
+#           echo "TODO: npm run build / go build / dll."
+#           mkdir -p dist
+#           echo "release ${{ steps.ver.outputs.version }}" > dist/VERSION.txt
+
+#       - name: Create archive (.tar.gz)
+#         id: pack
+#         run: |
+#           VERSION="${{ steps.ver.outputs.version }}"
+#           ARTIFACT="${{ steps.artifact.outputs.name }}"
+#           FILE="${ARTIFACT}-${VERSION}.tar.gz"
+#           tar -czf "${FILE}" -C dist .
+#           echo "file=${FILE}" >> "$GITHUB_OUTPUT"
+#           ls -lh "${FILE}"
+#           sha256sum "${FILE}"
+
+#       - name: Upload to Bebii registry
+#         env:
+#           REGISTRY_URL: ${{ secrets.BEBII_REGISTRY_URL }}
+#           REGISTRY_TOKEN: ${{ secrets.BEBII_REGISTRY_TOKEN }}
+#         run: |
+#           set -euo pipefail
+#           if [ -z "${REGISTRY_URL:-}" ] || [ -z "${REGISTRY_TOKEN:-}" ]; then
+#             echo "Set secrets BEBII_REGISTRY_URL dan BEBII_REGISTRY_TOKEN di repo GitHub."
+#             exit 1
+#           fi
+#           REGISTRY_URL="${REGISTRY_URL%/}"
+#           VERSION="${{ steps.ver.outputs.version }}"
+#           ARTIFACT="${{ steps.artifact.outputs.name }}"
+#           FILE="${{ steps.pack.outputs.file }}"
+
+#           echo "Uploading ${FILE} → ${REGISTRY_URL}/api/registry/${ARTIFACT}"
+#           HTTP_CODE=$(curl -fsS -o /tmp/registry-response.json -w "%{http_code}" -X POST \
+#             -H "Authorization: Bearer ${REGISTRY_TOKEN}" \
+#             -H "X-Registry-Version: ${VERSION}" \
+#             -H "X-Registry-Filename: ${FILE}" \
+#             -H "X-Git-Sha: ${GITHUB_SHA}" \
+#             -H "Content-Type: application/gzip" \
+#             --data-binary @"${FILE}" \
+#             "${REGISTRY_URL}/api/registry/${ARTIFACT}?version=${VERSION}&filename=${FILE}&git_sha=${GITHUB_SHA}")
+
+#           echo "HTTP ${HTTP_CODE}"
+#           cat /tmp/registry-response.json
+#           echo ""
+
+#       - name: Verify manifest on registry
+#         env:
+#           REGISTRY_URL: ${{ secrets.BEBII_REGISTRY_URL }}
+#         run: |
+#           REGISTRY_URL="${REGISTRY_URL%/}"
+#           ARTIFACT="${{ steps.artifact.outputs.name }}"
+#           curl -fsS "${REGISTRY_URL}/api/registry/${ARTIFACT}/manifest" | head -c 2000
+#           echo ""

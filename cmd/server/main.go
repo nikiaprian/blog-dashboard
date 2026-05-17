@@ -11,6 +11,7 @@ import (
 	"bebii-seo-dashboard/internal/db"
 	apphttp "bebii-seo-dashboard/internal/http"
 	"bebii-seo-dashboard/internal/http/handlers"
+	"bebii-seo-dashboard/internal/registry"
 
 	"github.com/joho/godotenv"
 )
@@ -67,6 +68,16 @@ func main() {
 			}
 			return t.In(jakartaLoc).Format("02 Jan 2006 15:04:05 WIB")
 		},
+		"formatSize": registry.FormatSize,
+		"truncate": func(s string, n int) string {
+			if len(s) <= n {
+				return s
+			}
+			return s[:n] + "…"
+		},
+		"registryDL": func(artifact, version, file string) string {
+			return "/api/registry/" + artifact + "/" + version + "/" + file
+		},
 	}).ParseGlob("web/templates/*.html")
 	if err != nil {
 		log.Fatalf("parse templates: %v", err)
@@ -74,7 +85,17 @@ func main() {
 
 	pluginSharedToken := os.Getenv("PLUGIN_SHARED_TOKEN")
 	globalKey := os.Getenv("BEBII_GLOBAL_KEY")
-	h := handlers.New(conn, tmpl, pluginSharedToken, globalKey)
+
+	regStore, err := registry.NewStore(getenv("REGISTRY_ROOT", "data/registry"))
+	if err != nil {
+		log.Fatalf("registry store: %v", err)
+	}
+
+	h := handlers.New(
+		conn, tmpl, pluginSharedToken, globalKey, regStore,
+		os.Getenv("REGISTRY_UPLOAD_TOKEN"),
+		os.Getenv("REGISTRY_READ_TOKEN"),
+	)
 	mux := http.NewServeMux()
 	h.Register(mux)
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
@@ -83,7 +104,9 @@ func main() {
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           apphttp.Logging(mux),
-		ReadHeaderTimeout: 10 * time.Second,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       30 * time.Minute,
+		WriteTimeout:      30 * time.Minute,
 	}
 
 	log.Printf("server listening on %s", addr)

@@ -13,14 +13,18 @@ import (
 
 	"bebii-seo-dashboard/internal/auth"
 	"bebii-seo-dashboard/internal/db"
+	"bebii-seo-dashboard/internal/registry"
 	"gorm.io/gorm"
 )
 
 type Handler struct {
-	DB                *gorm.DB
-	Templates         *template.Template
-	PluginSharedToken string
-	GlobalKey         string
+	DB                  *gorm.DB
+	Templates           *template.Template
+	PluginSharedToken   string
+	GlobalKey           string
+	Registry            *registry.Store
+	RegistryUploadToken string
+	RegistryReadToken   string
 }
 
 type ViewData struct {
@@ -41,6 +45,12 @@ type ViewData struct {
 	CommandResults []CommandResult
 	// Blog repo (GitHub main) update banner — user dashboard only
 	BlogMainUpdateAvailable bool
+
+	// Artifact registry (admin UI)
+	RegistryArtifacts        []string
+	RegistryManifest         *registry.Manifest
+	RegistrySelectedArtifact string
+	RegistryHasUploadToken   bool
 }
 
 // UserServerLogRow is a server_command_logs row plus hostname for the linked server (user dashboard).
@@ -69,12 +79,15 @@ type ScriptRunLog struct {
 	Output     string
 }
 
-func New(conn *gorm.DB, tmpl *template.Template, pluginSharedToken, globalKey string) *Handler {
+func New(conn *gorm.DB, tmpl *template.Template, pluginSharedToken, globalKey string, reg *registry.Store, registryUploadToken, registryReadToken string) *Handler {
 	return &Handler{
-		DB:                conn,
-		Templates:         tmpl,
-		PluginSharedToken: strings.TrimSpace(pluginSharedToken),
-		GlobalKey:         strings.TrimSpace(globalKey),
+		DB:                  conn,
+		Templates:           tmpl,
+		PluginSharedToken:   strings.TrimSpace(pluginSharedToken),
+		GlobalKey:           strings.TrimSpace(globalKey),
+		Registry:            reg,
+		RegistryUploadToken: strings.TrimSpace(registryUploadToken),
+		RegistryReadToken:   strings.TrimSpace(registryReadToken),
 	}
 }
 
@@ -92,6 +105,11 @@ func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/servers", h.requireAuth("admin", h.handleAdminServers))
 	mux.HandleFunc("/admin/servers/paths/table", h.requireAuth("admin", h.handleAdminServerPathsTable))
 	mux.HandleFunc("/admin/servers/", h.requireAuth("admin", h.handleAdminServerActions))
+	mux.HandleFunc("/admin/registry", h.requireAuth("admin", h.handleAdminRegistry))
+	mux.HandleFunc("/admin/registry/", h.requireAuth("admin", h.handleAdminRegistryActions))
+
+	mux.HandleFunc("/api/registry", h.handleRegistryAPI)
+	mux.HandleFunc("/api/registry/", h.handleRegistryAPI)
 
 	mux.HandleFunc("/dashboard", h.requireAuth("user", h.handleDashboard))
 	mux.HandleFunc("/dashboard/domains", h.requireAuth("user", h.handleDashboardAddDomain))
